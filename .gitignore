@@ -24,7 +24,7 @@ override.tf.json
 terraform.rc
 
 # Ignore Lambda deployment packages
-*.zip
+#*.zip
 
 # Ignore local environment files
 .env
