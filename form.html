@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Sites com Amazon Bedrock</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #232F3E;
+      --secondary-color: #FF9900;
+      --accent-color: #37475A;
+      --background-color: #F2F3F3;
+      --card-bg-color: #FFFFFF;
+      --text-color: #232F3E;
+      --text-light: #666666;
+      --success-color: #007E33;
+      --error-color: #CC0000;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --transition: all 0.3s ease;
+      --gradient: linear-gradient(135deg, #232F3E 0%, #37475A 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .card {
+      background-color: var(--card-bg-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+
+    .card-header {
+      background: var(--gradient);
+      color: white;
+      padding: 25px 30px;
+      position: relative;
+    }
+
+    .card-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: var(--secondary-color);
+    }
+
+    .card-body {
+      padding: 30px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .logo i {
+      font-size: 24px;
+      color: var(--secondary-color);
+      margin-right: 10px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+
+    .description {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 16px;
+      margin-top: 8px;
+      max-width: 600px;
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-color);
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 15px 14px 45px;
+      border: 1px solid #ddd;
+      border-radius: var(--border-radius);
+      font-size: 16px;
+      transition: var(--transition);
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--secondary-color);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255, 153, 0, 0.2);
+    }
+
+    .theme-examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .theme-tag {
+      background-color: #f0f0f0;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .theme-tag:hover {
+      background-color: #e0e0e0;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 30px;
+    }
+
+    button {
+      background-color: var(--secondary-color);
+      color: var(--primary-color);
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button:hover {
+      background-color: #e68a00;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(35, 47, 62, 0.2);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .result {
+      margin-top: 30px;
+      padding: 25px;
+      border-radius: var(--border-radius);
+      display: none;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result.success {
+      background-color: rgba(0, 126, 51, 0.08);
+      border-left: 4px solid var(--success-color);
+    }
+
+    .result.error {
+      background-color: rgba(204, 0, 0, 0.08);
+      border-left: 4px solid var(--error-color);
+    }
+
+    .result h3 {
+      margin-bottom: 15px;
+      color: var(--text-color);
+      display: flex;
+      align-items: center;
+      font-size: 18px;
+    }
+
+    .result.success h3::before {
+      content: '\f058';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      margin-right: 10px;
+      color: var(--success-color);
+    }
+
+    .result.error h3::before {
+      content: '\f057';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      margin-right: 10px;
+      color: var(--error-color);
+    }
+
+    .result p {
+      margin-bottom: 15px;
+      line-height: 1.6;
+    }
+
+    .site-link {
+      display: inline-flex;
+      align-items: center;
+      background-color: #f8f9fa;
+      border-radius: var(--border-radius);
+      padding: 12px 20px;
+      margin-top: 10px;
+      text-decoration: none;
+      color: var(--text-color);
+      font-weight: 500;
+      transition: var(--transition);
+      border: 1px solid #e9ecef;
+    }
+
+    .site-link i {
+      margin-right: 10px;
+      color: var(--secondary-color);
+    }
+
+    .site-link:hover {
+      background-color: #f1f3f5;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    footer {
+      text-align: center;
+      margin-top: auto;
+      padding: 20px 0;
+      color: var(--text-light);
+      font-size: 0.9rem;
+    }
+
+    .footer-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .aws-services {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .aws-services i {
+      margin: 0 5px;
+      color: var(--secondary-color);
+    }
+
+    .divider {
+      width: 100%;
+      max-width: 200px;
+      height: 1px;
+      background-color: #ddd;
+      margin: 15px 0;
+    }
+
+    /* Estilos para autenticação */
+    .auth-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--accent-color);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      margin-right: 12px;
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .user-email {
+      font-size: 13px;
+      color: var(--text-light);
+    }
+
+    .auth-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .auth-button {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .auth-button i {
+      margin-right: 6px;
+    }
+
+    .auth-button:hover {
+      background-color: #2a3846;
+      transform: translateY(-1px);
+    }
+
+    .auth-button.login {
+      background-color: var(--secondary-color);
+      color: var(--primary-color);
+    }
+
+    .auth-button.login:hover {
+      background-color: #e68a00;
+    }
+
+    .auth-button.logout {
+      background-color: #f1f3f5;
+      color: var(--text-color);
+    }
+
+    .auth-button.logout:hover {
+      background-color: #e9ecef;
+    }
+
+    .login-required {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .login-required i {
+      font-size: 48px;
+      color: var(--accent-color);
+      margin-bottom: 20px;
+    }
+
+    .login-required h2 {
+      font-size: 24px;
+      margin-bottom: 15px;
+    }
+
+    .login-required p {
+      color: var(--text-light);
+      margin-bottom: 25px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Responsividade */
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 15px;
+      }
+      
+      .card-header, .card-body {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 24px;
+      }
+      
+      .description {
+        font-size: 15px;
+      }
+      
+      button {
+        padding: 12px 20px;
+        font-size: 15px;
+      }
+
+      .auth-container {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .user-info {
+        margin-bottom: 15px;
+      }
+
+      .auth-buttons {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <div class="logo">
+          <i class="fa-solid fa-robot"></i>
+          <h1>Gerador de Sites com Amazon Bedrock</h1>
+        </div>
+        <p class="description">Crie sites personalizados instantaneamente com IA generativa da AWS</p>
+      </div>
+      
+      <div class="card-body">
+        <!-- Área de autenticação -->
+        <div class="auth-container" id="authContainer">
+          <div class="user-info" id="userInfo" style="display: none;">
+            <div class="user-avatar" id="userAvatar"></div>
+            <div class="user-details">
+              <div class="user-name" id="userName">Carregando...</div>
+              <div class="user-email" id="userEmail">Carregando...</div>
+            </div>
+          </div>
+          <div class="auth-buttons" id="authButtons">
+            <a href="#" class="auth-button login" id="loginButton">
+              <i class="fa-solid fa-right-to-bracket"></i>
+              Entrar
+            </a>
+          </div>
+        </div>
+
+        <!-- Conteúdo principal (visível apenas após login) -->
+        <div id="mainContent" style="display: none;">
+          <div class="form-group">
+            <label for="themeInput">Qual o tema do seu site?</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-lightbulb"></i>
+              <input type="text" id="themeInput" placeholder="Ex: café artesanal, viagens na Europa, tecnologia sustentável..." required>
+            </div>
+            
+            <div class="theme-examples">
+              <span class="theme-tag" onclick="selectTheme('café artesanal')">café artesanal</span>
+              <span class="theme-tag" onclick="selectTheme('viagens na Europa')">viagens na Europa</span>
+              <span class="theme-tag" onclick="selectTheme('tecnologia sustentável')">tecnologia sustentável</span>
+              <span class="theme-tag" onclick="selectTheme('fotografia')">fotografia</span>
+              <span class="theme-tag" onclick="selectTheme('gastronomia')">gastronomia</span>
+            </div>
+          </div>
+
+          <div class="button-container">
+            <button id="generateButton">
+              <span class="spinner" id="spinner"></span>
+              <span id="buttonText">Gerar Site</span>
+            </button>
+          </div>
+
+          <div class="result" id="resultContainer">
+            <h3 id="resultTitle"></h3>
+            <p id="resultMessage"></p>
+            <a href="#" id="siteUrl" class="site-link" target="_blank">
+              <i class="fa-solid fa-external-link-alt"></i>
+              <span>Acessar o site gerado</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Mensagem de login necessário -->
+        <div class="login-required" id="loginRequired">
+          <i class="fa-solid fa-lock"></i>
+          <h2>Login necessário</h2>
+          <p>Para utilizar o gerador de sites, é necessário fazer login com sua conta. Clique no botão abaixo para acessar.</p>
+          <a href="#" class="auth-button login" id="loginButtonBig">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            Fazer Login
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <div class="aws-services">
+        Powered by
+        <i class="fa-brands fa-aws" title="Amazon Web Services"></i>
+        <span>Bedrock</span>
+        <i class="fa-solid fa-circle-dot" style="font-size: 4px; vertical-align: middle;"></i>
+        <span>S3</span>
+        <i class="fa-solid fa-circle-dot" style="font-size: 4px; vertical-align: middle;"></i>
+        <span>CloudFront</span>
+        <i class="fa-solid fa-circle-dot" style="font-size: 4px; vertical-align: middle;"></i>
+        <span>API Gateway</span>
+        <i class="fa-solid fa-circle-dot" style="font-size: 4px; vertical-align: middle;"></i>
+        <span>Cognito</span>
+      </div>
+      <div class="divider"></div>
+      <p><small>© 2025 - Terraform S3 + Bedrock + CloudFront + API Gateway + Cognito</small></p>
+    </div>
+  </footer>
+
+  <script>
+    // Elementos do DOM
+    const themeInput = document.getElementById('themeInput');
+    const generateButton = document.getElementById('generateButton');
+    const spinner = document.getElementById('spinner');
+    const buttonText = document.getElementById('buttonText');
+    const resultContainer = document.getElementById('resultContainer');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultMessage = document.getElementById('resultMessage');
+    const siteUrl = document.getElementById('siteUrl');
+    
+    // Elementos de autenticação
+    const authContainer = document.getElementById('authContainer');
+    const userInfo = document.getElementById('userInfo');
+    const userAvatar = document.getElementById('userAvatar');
+    const userName = document.getElementById('userName');
+    const userEmail = document.getElementById('userEmail');
+    const authButtons = document.getElementById('authButtons');
+    const loginButton = document.getElementById('loginButton');
+    const loginButtonBig = document.getElementById('loginButtonBig');
+    const mainContent = document.getElementById('mainContent');
+    const loginRequired = document.getElementById('loginRequired');
+
+    // Endpoint da API Gateway e CloudFront (serão substituídos pelo Terraform)
+    const apiEndpoint = '{{API_ENDPOINT}}';
+    const cloudfrontDomain = '{{CLOUDFRONT_DOMAIN}}';
+    
+    // Configurações do Cognito
+    const cognitoConfig = {
+      // Estes valores serão substituídos dinamicamente pelo Terraform
+      userPoolId: '{{USER_POOL_ID}}',
+      clientId: '{{CLIENT_ID}}',
+      domain: '{{COGNITO_DOMAIN}}',
+      redirectUri: window.location.href,
+      region: '{{REGION}}'
+    };
+    
+    // Função para gerar UUID v4 (para identificação do usuário)
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    // Função para selecionar tema pré-definido
+    function selectTheme(theme) {
+      themeInput.value = theme;
+      themeInput.focus();
+    }
+    
+    // Função para obter parâmetros da URL
+    function getUrlParams() {
+      const params = {};
+      const queryString = window.location.hash.substring(1);
+      const regex = /([^&=]+)=([^&]*)/g;
+      let m;
+      
+      while (m = regex.exec(queryString)) {
+        params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
+      }
+      
+      return params;
+    }
+    
+    // Função para extrair informações do token JWT
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        console.error('Erro ao decodificar token:', e);
+        return null;
+      }
+    }
+    
+    // Função para redirecionar para o login do Cognito
+    function redirectToLogin() {
+      // Usar o domínio CloudFront em vez do URL atual
+      const redirectUri = `https://${cloudfrontDomain}/form.html`;
+      const loginUrl = `https://${cognitoConfig.domain}.auth.${cognitoConfig.region}.amazoncognito.com/login?client_id=${cognitoConfig.clientId}&response_type=token&scope=email+openid+profile&redirect_uri=${encodeURIComponent(redirectUri)}`;
+      window.location.href = loginUrl;
+    }
+    
+    // Função para fazer logout
+    function logout() {
+      // Limpar tokens do localStorage
+      localStorage.removeItem('id_token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user_id');
+      
+      // Redirecionar para o endpoint de logout do Cognito
+      const logoutUrl = `https://${cognitoConfig.domain}.auth.${cognitoConfig.region}.amazoncognito.com/logout?client_id=${cognitoConfig.clientId}&logout_uri=${encodeURIComponent(cognitoConfig.redirectUri)}`;
+      window.location.href = logoutUrl;
+    }
+    
+    // Função para verificar autenticação
+    function checkAuth() {
+      // Verificar se há tokens na URL (após redirecionamento do Cognito)
+      const params = getUrlParams();
+      
+      if (params.id_token) {
+        // Salvar tokens no localStorage
+        localStorage.setItem('id_token', params.id_token);
+        localStorage.setItem('access_token', params.access_token);
+        
+        // Limpar a URL para remover os tokens
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
+      // Verificar se há token salvo
+      const idToken = localStorage.getItem('id_token');
+      
+      if (idToken) {
+        // Decodificar o token para obter informações do usuário
+        const tokenData = parseJwt(idToken);
+        
+        if (tokenData) {
+          // Salvar o sub como user_id para uso na API
+          localStorage.setItem('user_id', tokenData.sub);
+          
+          // Exibir informações do usuário
+          displayUserInfo(tokenData);
+          
+          // Mostrar conteúdo principal
+          mainContent.style.display = 'block';
+          loginRequired.style.display = 'none';
+          
+          return true;
+        }
+      }
+      
+      // Se não há token válido, mostrar mensagem de login necessário
+      mainContent.style.display = 'none';
+      loginRequired.style.display = 'block';
+      
+      return false;
+    }
+    
+    // Função para exibir informações do usuário
+    function displayUserInfo(userData) {
+      // Exibir nome e email
+      userName.textContent = userData.name || 'Usuário';
+      userEmail.textContent = userData.email || '';
+      
+      // Criar iniciais para o avatar
+      const initials = (userData.name || 'U').charAt(0).toUpperCase();
+      userAvatar.textContent = initials;
+      
+      // Mostrar área de usuário
+      userInfo.style.display = 'flex';
+      
+      // Atualizar botões de autenticação
+      authButtons.innerHTML = `
+        <a href="#" class="auth-button logout" id="logoutButton">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          Sair
+        </a>
+      `;
+      
+      // Adicionar evento de logout
+      document.getElementById('logoutButton').addEventListener('click', function(e) {
+        e.preventDefault();
+        logout();
+      });
+    }
+
+    // Função para gerar o site
+    async function generateSite() {
+      // Verificar autenticação
+      if (!checkAuth()) {
+        redirectToLogin();
+        return;
+      }
+      
+      // Validar entrada
+      const theme = themeInput.value.trim();
+      
+      if (!theme) {
+        showError('Por favor, insira um tema para o site.');
+        return;
+      }
+
+      // Obter o ID do usuário do token
+      const userId = localStorage.getItem('user_id');
+      const idToken = localStorage.getItem('id_token');
+      
+      if (!userId || !idToken) {
+        showError('Erro de autenticação. Por favor, faça login novamente.');
+        logout();
+        return;
+      }
+
+      // Mostrar spinner e desabilitar botão
+      spinner.style.display = 'inline-block';
+      buttonText.textContent = 'Gerando...';
+      generateButton.disabled = true;
+      
+      try {
+        // Configurar headers com token de autenticação
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        };
+        
+        // Fazer requisição para a API
+        const response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({ 
+            site_theme: theme,
+            user_id: userId
+          })
+        });
+        
+        // Processar resposta
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Sucesso
+          showSuccess(data);
+        } else {
+          // Erro da API
+          showError(`Erro: ${data.error || 'Não foi possível gerar o site.'}`);
+        }
+      } catch (error) {
+        // Erro de rede ou outro erro
+        showError(`Erro: ${error.message || 'Ocorreu um erro ao tentar gerar o site.'}`);
+      } finally {
+        // Restaurar botão
+        spinner.style.display = 'none';
+        buttonText.textContent = 'Gerar Site';
+        generateButton.disabled = false;
+      }
+    }
+
+    // Função para mostrar mensagem de sucesso
+    function showSuccess(data) {
+      resultContainer.className = 'result success';
+      resultTitle.textContent = 'Site gerado com sucesso!';
+      resultMessage.textContent = `Seu site sobre "${data.site_theme}" foi criado e está pronto para visualização.`;
+      
+      // Configurar link para o site gerado
+      siteUrl.querySelector('span').textContent = 'Acessar o site gerado';
+      siteUrl.href = data.site_url;
+      siteUrl.style.display = 'inline-flex';
+      
+      resultContainer.style.display = 'block';
+      
+      // Scroll para o resultado
+      resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Função para mostrar mensagem de erro
+    function showError(message) {
+      resultContainer.className = 'result error';
+      resultTitle.textContent = 'Erro na geração do site';
+      resultMessage.textContent = message;
+      siteUrl.style.display = 'none';
+      resultContainer.style.display = 'block';
+      
+      // Scroll para o resultado
+      resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Inicializar a página
+    function init() {
+      // Verificar autenticação
+      checkAuth();
+      
+      // Adicionar eventos de clique aos botões de login
+      loginButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        redirectToLogin();
+      });
+      
+      loginButtonBig.addEventListener('click', function(e) {
+        e.preventDefault();
+        redirectToLogin();
+      });
+      
+      // Adicionar evento de clique ao botão de geração
+      generateButton.addEventListener('click', generateSite);
+
+      // Permitir envio ao pressionar Enter no campo de tema
+      themeInput.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+          generateSite();
+        }
+      });
+    }
+    
+    // Inicializar quando o DOM estiver pronto
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
