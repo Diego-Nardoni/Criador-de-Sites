@@ -2,9 +2,9 @@
 
 Este projeto Terraform provisiona uma arquitetura AWS para hospedar sites estáticos em um bucket S3, onde o conteúdo HTML é gerado automaticamente via Amazon Bedrock, orquestrado por AWS Step Functions, com API Gateway, filas SQS para priorização, DynamoDB para controle de status e perfis de usuário, e servido através de uma distribuição do CloudFront.
 
-## Arquitetura
+## Arquitetura da Solução
 
-![Arquitetura](./generated-diagrams/ai-static-site-generator-complete.png)
+![Diagrama da Arquitetura](./docs/arquitetura.png)
 
 ### Orquestração com Step Functions
 
