@@ -1,3 +1,47 @@
+variable "lambda_runtime" {
+  description = "Runtime padrão das funções Lambda"
+  type        = string
+  default     = "python3.10"
+}
+
+variable "lambda_timeout" {
+  description = "Timeout padrão das funções Lambda (segundos)"
+  type        = number
+  default     = 30
+}
+
+variable "lambda_memory_size" {
+  description = "Memória padrão das funções Lambda (MB)"
+  type        = number
+  default     = 256
+}
+
+variable "enable_versioning" {
+  description = "Habilita versionamento nos buckets S3"
+  type        = bool
+  default     = true
+}
+
+variable "enable_multi_site" {
+  description = "Habilita geração de múltiplos sites por usuário"
+  type        = bool
+  default     = true
+}
+variable "tags" {
+  description = "Tags padrão para todos os recursos AWS"
+  type        = map(string)
+  default     = {}
+}
+
+variable "ui_bucket_name" {
+  description = "Nome do bucket S3 para interface do usuário (UI)"
+  type        = string
+}
+
+variable "output_bucket_name" {
+  description = "Nome do bucket S3 para sites gerados"
+  type        = string
+}
 # Nome do bucket de uploads de imagens
 variable "uploads_bucket_name" {
   description = "Nome único para o bucket S3 que armazenará uploads de imagens dos usuários"
@@ -10,35 +54,6 @@ variable "region" {
   description = "A região AWS onde os recursos serão criados"
   type        = string
   default     = "us-east-1"
-}
-
-variable "ui_bucket_name" {
-  description = "Nome único para o bucket S3 que hospedará a interface do usuário (form.html)"
-  type        = string
-}
-
-variable "output_bucket_name" {
-  description = "Nome único para o bucket S3 que hospedará os sites gerados"
-  type        = string
-}
-
-variable "tags" {
-  description = "Tags padrão a serem aplicadas aos recursos"
-  type        = map(string)
-  default = {
-    Environment = "dev"
-    Team        = "Infrastructure"
-    Project     = "S3-Bedrock-CloudFront"
-    Owner       = "DevOps"
-  }
-}
-
-# Variáveis para S3
-
-variable "enable_versioning" {
-  description = "Habilita o versionamento de objetos no bucket"
-  type        = bool
-  default     = true
 }
 
 # Variáveis para CloudFront
@@ -83,6 +98,12 @@ variable "cloudfront_log_prefix" {
   description = "Prefixo para os logs do CloudFront"
   type        = string
   default     = "cloudfront-logs/"
+}
+
+variable "cloudfront_domain" {
+  description = "Domínio do CloudFront para o frontend"
+  type        = string
+  default     = "cloudfront.example.com"
 }
 
 # Variáveis para Bedrock
@@ -204,26 +225,244 @@ variable "cognito_domain_prefix" {
 
 # Variáveis para Lambda
 
-variable "lambda_runtime" {
-  description = "Runtime da função Lambda"
+
+variable "sqs_premium_name" {
+  description = "Nome da fila SQS para usuários premium"
   type        = string
-  default     = "python3.9"
+  default     = "site-gen-premium"
 }
 
-variable "lambda_timeout" {
-  description = "Timeout da função Lambda em segundos"
-  type        = number
-  default     = 120 # Aumentado para 2 minutos para permitir geração de HTML mais complexo
+variable "sqs_free_dlq_name" {
+  description = "Nome da DLQ para fila free"
+  type        = string
+  default     = "site-gen-free-dlq"
 }
 
-variable "lambda_memory_size" {
-  description = "Memória alocada para a função Lambda em MB"
-  type        = number
-  default     = 512 # Aumentado para 512MB para melhor performance com o Bedrock
+variable "sqs_premium_dlq_name" {
+  description = "Nome da DLQ para fila premium"
+  type        = string
+  default     = "site-gen-premium-dlq"
 }
 
-variable "enable_multi_site" {
-  description = "Habilita suporte para múltiplos sites com pastas por usuário"
-  type        = bool
-  default     = true
+# DynamoDB
+variable "dynamodb_status_table" {
+  description = "Nome da tabela DynamoDB para status de geração"
+  type        = string
+  default     = "site_gen_status"
+}
+
+variable "dynamodb_user_profiles" {
+  description = "Nome da tabela DynamoDB para perfis de usuário"
+  type        = string
+  default     = "user_profiles"
+}
+
+# Lambda
+variable "lambda_worker_name" {
+  description = "Nome da Lambda Worker"
+  type        = string
+  default     = "lambda_site_generator_worker"
+}
+
+variable "lambda_enqueue_name" {
+  description = "Nome da Lambda Enqueue"
+  type        = string
+  default     = "lambda_enqueue_request"
+}
+
+variable "lambda_check_status_name" {
+  description = "Nome da Lambda Check Status"
+  type        = string
+  default     = "lambda_check_status"
+}
+
+variable "lambda_me_name" {
+  description = "Nome da Lambda Me (GET /me)"
+  type        = string
+  default     = "lambda_me"
+}
+
+variable "lambda_promote_user_name" {
+  description = "Nome da Lambda Promote User (bônus)"
+  type        = string
+  default     = "lambda_promote_user"
+}
+
+# API Gateway
+
+# Handlers e arquivos zip das Lambdas
+variable "lambda_worker_handler" {
+  description = "Handler da Lambda Worker"
+  type        = string
+  default     = "worker.lambda_handler"
+}
+
+variable "lambda_worker_zip" {
+  description = "Arquivo zip da Lambda Worker"
+  type        = string
+  default     = "lambda_worker.zip"
+}
+
+variable "lambda_enqueue_handler" {
+  description = "Handler da Lambda Enqueue"
+  type        = string
+  default     = "enqueue.lambda_handler"
+}
+
+variable "lambda_enqueue_zip" {
+  description = "Arquivo zip da Lambda Enqueue"
+  type        = string
+  default     = "lambda_enqueue.zip"
+}
+
+variable "lambda_check_status_handler" {
+  description = "Handler da Lambda Check Status"
+  type        = string
+  default     = "check_status.lambda_handler"
+}
+
+variable "lambda_check_status_zip" {
+  description = "Arquivo zip da Lambda Check Status"
+  type        = string
+  default     = "lambda_check_status.zip"
+}
+
+variable "lambda_me_handler" {
+  description = "Handler da Lambda Me"
+  type        = string
+  default     = "me.lambda_handler"
+}
+
+variable "lambda_me_zip" {
+  description = "Arquivo zip da Lambda Me"
+  type        = string
+  default     = "lambda_me.zip"
+}
+
+variable "lambda_promote_user_handler" {
+  description = "Handler da Lambda Promote User"
+  type        = string
+  default     = "promote_user.lambda_handler"
+}
+
+variable "lambda_promote_user_zip" {
+  description = "Arquivo zip da Lambda Promote User"
+  type        = string
+  default     = "lambda_promote_user.zip"
+}
+
+# Step Functions - Lambdas do processo
+variable "lambda_validate_input_name" {
+  description = "Nome da Lambda de validação de input"
+  type        = string
+  default     = "lambda_validate_input"
+}
+variable "lambda_generate_html_name" {
+  description = "Nome da Lambda de geração de HTML via Bedrock"
+  type        = string
+  default     = "lambda_generate_html"
+}
+variable "lambda_store_site_name" {
+  description = "Nome da Lambda de armazenamento no S3"
+  type        = string
+  default     = "lambda_store_site"
+}
+variable "lambda_update_status_name" {
+  description = "Nome da Lambda de atualização de status"
+  type        = string
+  default     = "lambda_update_status"
+}
+variable "lambda_notify_user_name" {
+  description = "Nome da Lambda de notificação ao usuário"
+  type        = string
+  default     = "lambda_notify_user"
+}
+variable "lambda_sqs_invoker_name" {
+  description = "Nome da Lambda Worker que invoca a State Machine"
+  type        = string
+  default     = "lambda_sqs_invoker"
+}
+
+# Handlers e arquivos zip das novas Lambdas
+variable "lambda_validate_input_handler" {
+  description = "Handler da Lambda de validação de input"
+  type        = string
+  default     = "validate_input.lambda_handler"
+}
+variable "lambda_validate_input_zip" {
+  description = "Arquivo zip da Lambda de validação de input"
+  type        = string
+  default     = "lambda_validate_input.zip"
+}
+variable "lambda_generate_html_handler" {
+  description = "Handler da Lambda de geração de HTML"
+  type        = string
+  default     = "generate_html.lambda_handler"
+}
+variable "lambda_generate_html_zip" {
+  description = "Arquivo zip da Lambda de geração de HTML"
+  type        = string
+  default     = "lambda_generate_html.zip"
+}
+variable "lambda_store_site_handler" {
+  description = "Handler da Lambda de armazenamento no S3"
+  type        = string
+  default     = "store_site.lambda_handler"
+}
+variable "lambda_store_site_zip" {
+  description = "Arquivo zip da Lambda de armazenamento no S3"
+  type        = string
+  default     = "lambda_store_site.zip"
+}
+variable "lambda_update_status_handler" {
+  description = "Handler da Lambda de atualização de status"
+  type        = string
+  default     = "update_status.lambda_handler"
+}
+variable "lambda_update_status_zip" {
+  description = "Arquivo zip da Lambda de atualização de status"
+  type        = string
+  default     = "lambda_update_status.zip"
+}
+variable "lambda_notify_user_handler" {
+  description = "Handler da Lambda de notificação ao usuário"
+  type        = string
+  default     = "notify_user.lambda_handler"
+}
+variable "lambda_notify_user_zip" {
+  description = "Arquivo zip da Lambda de notificação ao usuário"
+  type        = string
+  default     = "lambda_notify_user.zip"
+}
+variable "lambda_sqs_invoker_handler" {
+  description = "Handler da Lambda Worker que invoca a State Machine"
+  type        = string
+  default     = "sqs_invoker.lambda_handler"
+}
+variable "lambda_sqs_invoker_zip" {
+  description = "Arquivo zip da Lambda Worker que invoca a State Machine"
+  type        = string
+  default     = "lambda_sqs_invoker.zip"
+}
+
+# Mapas para nomes de filas e estados
+variable "sqs_queue_names" {
+  description = "Map com nomes das filas SQS"
+  type        = map(string)
+  default = {
+    free    = "site-gen-free"
+    premium = "site-gen-premium"
+  }
+}
+variable "step_states" {
+  description = "Map com nomes dos estados da Step Function"
+  type        = map(string)
+  default = {
+    validar_input     = "ValidarInput"
+    gerar_html        = "GerarHTML"
+    armazenar_s3      = "ArmazenarS3"
+    atualizar_status  = "AtualizarStatus"
+    notificar_usuario = "NotificarUsuario"
+    erro              = "AtualizarStatusErro"
+  }
 }

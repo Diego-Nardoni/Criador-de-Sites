@@ -1,59 +1,78 @@
-# Terraform S3 + Bedrock + CloudFront + API Gateway
+# Terraform S3 + Bedrock + CloudFront + API Gateway + SQS + DynamoDB + Step Functions
 
-Este projeto Terraform provisiona uma arquitetura AWS para hospedar sites estáticos em um bucket S3, onde o conteúdo HTML é gerado automaticamente via Amazon Bedrock através de uma API Gateway e servido através de uma distribuição do CloudFront.
+Este projeto Terraform provisiona uma arquitetura AWS para hospedar sites estáticos em um bucket S3, onde o conteúdo HTML é gerado automaticamente via Amazon Bedrock, orquestrado por AWS Step Functions, com API Gateway, filas SQS para priorização, DynamoDB para controle de status e perfis de usuário, e servido através de uma distribuição do CloudFront.
 
 ## Arquitetura
 
-![Arquitetura](./generated-diagrams/s3-bedrock-cloudfront-architecture-updated.png)
+![Arquitetura](./generated-diagrams/ai-static-site-generator-complete.png)
 
-Para uma documentação detalhada de todos os recursos da infraestrutura, consulte o [Mapeamento de Recursos](./resource-mapping.md).
+### Orquestração com Step Functions
 
-A arquitetura implementada consiste em:
+O processo de geração de site é orquestrado por uma State Machine (`GenerateSiteStateMachine`) com os seguintes passos:
 
-1. **API Gateway**:
-   - Endpoint REST com método POST
-   - Autenticação via API Key (opcional)
-   - Recebe o tema do site a ser gerado
-   - Integração com Lambda
+1. **Validar Input** (`lambda_validate_input`):
+   - Valida campos obrigatórios (tema, formato da imagem, limites)
+2. **Gerar HTML** (`lambda_generate_html`):
+   - Chama o modelo Claude Sonnet via Bedrock
+3. **Armazenar no S3** (`lambda_store_site`):
+   - Salva o index.html e imagens no bucket do usuário
+4. **Atualizar Status** (`lambda_update_status`):
+   - Atualiza o status do job no DynamoDB
+5. **Notificar Usuário** (`lambda_notify_user`):
+   - (Opcional) Envia notificação ou loga a conclusão
+6. **Tratamento de Erros**:
+   - Qualquer falha em um passo aciona retries inteligentes e atualização de status para erro
 
-2. **AWS Lambda**:
-   - Recebe requisições da API Gateway
-   - Invoca o Amazon Bedrock com o tema solicitado
-   - Salva o HTML gerado no bucket S3
-   - Invalida o cache do CloudFront após upload
+A entrada do processo continua sendo via SQS (premium/free), consumida pela Lambda `lambda_sqs_invoker`, que invoca a State Machine.
 
-3. **Amazon Bedrock**:
-   - Utiliza um modelo da família Anthropic (Claude)
-   - Gera HTML com base no tema fornecido
-   - Personalização via template de prompt
+## Fluxo de Funcionamento (Atualizado)
 
-4. **Amazon S3**:
-   - Bucket configurado para hospedagem de site estático
-   - Bloqueio de acesso público ativado
-   - Versionamento habilitado
-   - Armazena o arquivo `index.html` gerado pelo Bedrock
+1. O usuário acessa a interface via CloudFront e faz login via Cognito
+2. Após autenticação, o usuário preenche o formulário e envia para a API Gateway
+3. A API Gateway valida o token JWT e encaminha para a Lambda Enqueue
+4. A Lambda Enqueue envia a solicitação para a fila SQS apropriada e grava o status inicial no DynamoDB
+5. A Lambda `lambda_sqs_invoker` consome a fila e invoca a State Machine
+6. A State Machine executa os passos: validação, geração de HTML, armazenamento, atualização de status, notificação
+7. O usuário pode consultar o status via endpoint `/status/{jobId}`
+8. Quando concluído, o usuário acessa o site gerado via CloudFront
 
-5. **Amazon CloudFront**:
-   - Distribuição na frente do S3
-   - OAC (Origin Access Control) configurado
-   - Redirecionamento de HTTP para HTTPS
-   - TTLs ajustados conforme melhores práticas
-   - Cache invalidado automaticamente após atualizações
+## Deploy das Lambdas
 
-6. **IAM**:
-   - Permissões para Lambda acessar Bedrock, S3 e CloudFront
-   - Seguindo o princípio do privilégio mínimo
+1. Empacote cada Lambda em um arquivo .zip:
 
-## Fluxo de Funcionamento
+```bash
+cd lambdas
+zip lambda_validate_input.zip validate_input.py
+zip lambda_generate_html.zip generate_html.py
+zip lambda_store_site.zip store_site.py
+zip lambda_update_status.zip update_status.py
+zip lambda_notify_user.zip notify_user.py
+zip lambda_sqs_invoker.zip sqs_invoker.py
+```
 
-1. O usuário envia uma requisição POST para a API Gateway com o tema do site
-2. A API Gateway encaminha a requisição para a função Lambda
-3. O Lambda invoca o Amazon Bedrock com o prompt formatado
-4. O Bedrock gera o HTML com base no tema fornecido
-5. O Lambda salva o HTML no bucket S3
-6. O Lambda invalida o cache do CloudFront
-7. O usuário recebe a URL do site gerado
-8. O site é servido através do CloudFront
+2. Faça upload dos arquivos .zip para o diretório esperado pelo Terraform ou bucket S3, conforme configuração.
+
+## Checklist de Boas Práticas
+
+- [x] Infraestrutura modular (arquivos separados por componente)
+- [x] IAM mínimo para cada Lambda e Step Function
+- [x] Step Functions com retries, rastreabilidade e controle de falhas
+- [x] Variáveis e tags globais para governança
+- [x] Outputs claros de todos os recursos críticos
+- [x] Frontend seguro, integrado com Cognito e API Gateway
+- [x] Logging e tratamento de erro em todas as Lambdas
+- [x] Documentação de deploy e troubleshooting
+
+## Observações
+
+- O projeto já está pronto para rodar `terraform init`, `terraform plan` e `terraform apply`.
+- Os exemplos de código das Lambdas estão em `/lambdas`.
+- O frontend (`form.html`) já está integrado para consumir a API orquestrada.
+- Outputs do Terraform incluem todos os endpoints, ARNs e recursos necessários para integração.
+
+---
+
+Para detalhes completos de variáveis, outputs, troubleshooting e arquitetura, consulte as seções abaixo do README.
 
 ## Pré-requisitos
 

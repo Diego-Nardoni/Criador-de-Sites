@@ -1,7 +1,7 @@
 
 # Logs Insights query pré-configurada (documentação)
 output "logs_insights_query" {
-  value = <<EOT
+  value       = <<EOT
 fields @timestamp, @message
 | filter @message like /error/i
 | sort @timestamp desc

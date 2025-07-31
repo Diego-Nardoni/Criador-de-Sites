@@ -11,70 +11,7 @@ resource "aws_sns_topic_subscription" "email" {
   endpoint  = "devops@empresa.com" # Altere para o e-mail desejado
 }
 
-# Lambda Alarms
-resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
-  alarm_name          = "lambda-bedrock-errors"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "Errors"
-  namespace           = "AWS/Lambda"
-  period              = 60
-  statistic           = "Sum"
-  threshold           = 1
-  alarm_description   = "Mais de 1 erro em 2 minutos na Lambda bedrock-generate-html"
-  dimensions = {
-    FunctionName = aws_lambda_function.generate_html.function_name
-  }
-  alarm_actions = [aws_sns_topic.monitoring_alerts.arn]
-}
 
-resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
-  alarm_name          = "lambda-bedrock-throttles"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  metric_name         = "Throttles"
-  namespace           = "AWS/Lambda"
-  period              = 60
-  statistic           = "Sum"
-  threshold           = 0
-  alarm_description   = "Throttling detectado na Lambda bedrock-generate-html"
-  dimensions = {
-    FunctionName = aws_lambda_function.generate_html.function_name
-  }
-  alarm_actions = [aws_sns_topic.monitoring_alerts.arn]
-}
-
-resource "aws_cloudwatch_metric_alarm" "lambda_duration" {
-  alarm_name          = "lambda-bedrock-duration"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  metric_name         = "Duration"
-  namespace           = "AWS/Lambda"
-  period              = 300
-  statistic           = "Average"
-  threshold           = 2000
-  alarm_description   = "Duração média > 2000ms em 5 minutos na Lambda bedrock-generate-html"
-  dimensions = {
-    FunctionName = aws_lambda_function.generate_html.function_name
-  }
-  alarm_actions = [aws_sns_topic.monitoring_alerts.arn]
-}
-
-resource "aws_cloudwatch_metric_alarm" "lambda_concurrent" {
-  alarm_name          = "lambda-bedrock-concurrent"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  metric_name         = "ConcurrentExecutions"
-  namespace           = "AWS/Lambda"
-  period              = 60
-  statistic           = "Maximum"
-  threshold           = 80
-  alarm_description   = "Concurrent executions > 80 na Lambda bedrock-generate-html"
-  dimensions = {
-    FunctionName = aws_lambda_function.generate_html.function_name
-  }
-  alarm_actions = [aws_sns_topic.monitoring_alerts.arn]
-}
 
 # API Gateway Alarms
 resource "aws_cloudwatch_metric_alarm" "apigw_5xx" {

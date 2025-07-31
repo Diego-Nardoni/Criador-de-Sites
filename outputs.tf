@@ -1,3 +1,4 @@
+# No changes to apply as the specified outputs do not exist.
 # outputs.tf
 # Definição dos outputs do módulo
 
@@ -59,10 +60,6 @@ output "api_key" {
   sensitive   = true
 }
 
-output "lambda_function_name" {
-  description = "Nome da função Lambda que gera o HTML"
-  value       = aws_lambda_function.generate_html.function_name
-}
 
 output "bedrock_model_used" {
   description = "Modelo do Bedrock utilizado para gerar o HTML"
@@ -82,9 +79,27 @@ output "curl_example_with_placeholder" {
 
 output "deployment_instructions" {
   description = "Instruções para acessar a interface do usuário."
-  value = <<EOT
+  value       = <<EOT
     1. Acesse a interface do usuário via CloudFront (HTTPS):
         https://${aws_cloudfront_distribution.ui_distribution.domain_name}/form.html
     2. (Opcional) Configure seu domínio customizado no CloudFront, se desejar.
 EOT
 }
+
+
+output "cloudfront_domain" {
+  description = "Domínio do CloudFront para o frontend"
+  value       = var.cloudfront_domain
+}
+
+
+output "dynamodb_status_table" {
+  description = "Nome da tabela DynamoDB de status"
+  value       = aws_dynamodb_table.site_gen_status.name
+}
+
+output "dynamodb_user_profiles" {
+  description = "Nome da tabela DynamoDB de perfis de usuário"
+  value       = aws_dynamodb_table.user_profiles.name
+}
+
