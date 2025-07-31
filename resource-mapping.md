@@ -124,6 +124,32 @@ This document provides a comprehensive mapping of all AWS resources defined in t
   - Group: /aws/apigateway/{var.api_name}
   - Retention: 7 days
 
+### CloudWatch Alarms
+- **SNS Topic**: "monitoring-alerts" for alarm notifications
+  - Email Subscription: Sends notifications to configured email address
+- **Lambda Alarms**:
+  - lambda-bedrock-errors: Alerts on Lambda function errors
+  - lambda-bedrock-throttles: Alerts on Lambda throttling
+  - lambda-bedrock-duration: Alerts on high Lambda execution duration
+  - lambda-bedrock-concurrent: Alerts on high concurrent Lambda executions
+- **API Gateway Alarms**:
+  - apigw-5xx: Alerts on 5XX errors in API Gateway
+  - apigw-4xx: Alerts on high rate of 4XX errors in API Gateway
+  - apigw-latency: Alerts on high API Gateway latency
+  - apigw-count-zero: Alerts when no requests are received for a period
+- **CloudFront Alarms**:
+  - cloudfront-requests: Alerts on high request volume
+  - cloudfront-viewer-response-time: Alerts on high error rates
+
+### CloudWatch Dashboard
+- **Unified Dashboard**: "site-generator-observability"
+  - Displays metrics for Lambda, API Gateway, and CloudFront
+  - Includes error logs from Lambda and API Gateway
+  - Provides at-a-glance view of system health
+
+### Logs Insights
+- **Pre-configured Query**: For quick troubleshooting of errors in Lambda and API Gateway logs
+
 ## Architecture Diagram
 
 The updated architecture diagram can be found at: `./generated-diagrams/s3-bedrock-cloudfront-architecture-updated.png`

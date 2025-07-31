@@ -1,7 +1,7 @@
 # Lambda para histórico de sites
 resource "aws_lambda_function" "history" {
   function_name    = "bedrock-history"
-  filename         = "${path.module}/lambda_history.py"
+  filename         = "${path.module}/lambda_history.zip"
   handler          = "lambda_history.lambda_handler"
   runtime          = var.lambda_runtime
   timeout          = 10
@@ -153,7 +153,6 @@ resource "aws_s3_bucket_public_access_block" "output_bucket" {
 # Configuração de versionamento para o bucket de saída (opcional)
 resource "aws_s3_bucket_versioning" "output_bucket" {
   bucket = aws_s3_bucket.output_bucket.id
-
   versioning_configuration {
     status = var.enable_versioning ? "Enabled" : "Disabled"
   }
@@ -242,6 +241,7 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
   # Configuração de certificado SSL (usando certificado padrão do CloudFront)
   viewer_certificate {
     cloudfront_default_certificate = true
+    minimum_protocol_version       = "TLSv1.2_2021"
   }
 }
 
@@ -293,6 +293,7 @@ resource "aws_cloudfront_distribution" "output_distribution" {
   # Configuração de certificado SSL (usando certificado padrão do CloudFront)
   viewer_certificate {
     cloudfront_default_certificate = true
+    minimum_protocol_version       = "TLSv1.2_2021"
   }
 
   # Configuração de logs (opcional)
@@ -347,6 +348,48 @@ resource "aws_s3_object" "form_html" {
           replace(
             replace(
               file("${path.module}/form.html"),
+              "{{API_ENDPOINT}}",
+              "${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.root.path}"
+            ),
+            "{{USER_POOL_ID}}",
+            aws_cognito_user_pool.user_pool.id
+          ),
+          "{{CLIENT_ID}}",
+          aws_cognito_user_pool_client.client.id
+        ),
+        "{{COGNITO_DOMAIN}}",
+        var.cognito_domain_prefix
+      ),
+      "{{REGION}}",
+      var.region
+    ),
+    "{{CLOUDFRONT_DOMAIN}}",
+    aws_cloudfront_distribution.ui_distribution.domain_name
+  )
+
+  # Garantir que o objeto seja criado após o bucket e o Cognito
+  depends_on = [
+    aws_s3_bucket.ui_bucket,
+    aws_cognito_user_pool.user_pool,
+    aws_cognito_user_pool_client.client,
+    aws_cognito_user_pool_domain.domain
+  ]
+}
+
+# Arquivo login.html customizado para o bucket UI (página de login Cognito customizada)
+resource "aws_s3_object" "login_html" {
+  bucket       = aws_s3_bucket.ui_bucket.id
+  key          = "login.html"
+  content_type = "text/html"
+
+  # Lê o arquivo login.html e substitui os placeholders pelos valores reais
+  content = replace(
+    replace(
+      replace(
+        replace(
+          replace(
+            replace(
+              file("${path.module}/login.html"),
               "{{API_ENDPOINT}}",
               "${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.root.path}"
             ),
@@ -516,15 +559,15 @@ resource "aws_s3_object" "output_index_template" {
 
 # Cognito User Pool
 resource "aws_cognito_user_pool" "user_pool" {
+  mfa_configuration = "ON"
   name = var.cognito_user_pool_name
-
-  # Configurações de senha
   password_policy {
-    minimum_length    = 8
+    minimum_length    = 12
     require_lowercase = true
     require_numbers   = true
-    require_symbols   = false
+    require_symbols   = true
     require_uppercase = true
+    temporary_password_validity_days = 3
   }
 
   # Configurações de verificação
@@ -1318,6 +1361,11 @@ resource "aws_lambda_function" "generate_html" {
   runtime          = var.lambda_runtime
   timeout          = var.lambda_timeout
   memory_size      = var.lambda_memory_size
+  reserved_concurrent_executions = 100
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
@@ -1332,6 +1380,120 @@ resource "aws_lambda_function" "generate_html" {
 
   tags = var.tags
 }
+# WAF para API Gateway
+
+# WAF para API Gateway
+resource "aws_wafv2_web_acl" "api_waf" {
+  name        = "api-waf"
+  scope       = "REGIONAL"
+  description = "Proteção WAF para API Gateway"
+  default_action {
+    allow {}
+  }
+  rule {
+    name     = "AWS-AWSManagedRulesCommonRuleSet"
+    priority = 1
+    override_action {
+      none {}
+    }
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "waf-common"
+      sampled_requests_enabled   = true
+    }
+  }
+  rule {
+    name     = "RateLimit"
+    priority = 2
+    action {
+      block {}
+    }
+    statement {
+      rate_based_statement {
+        limit              = 1000
+        aggregate_key_type = "IP"
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "waf-ratelimit"
+      sampled_requests_enabled   = true
+    }
+  }
+  rule {
+    name     = "AllowOnlyOptionsGetPost"
+    priority = 3
+    action {
+      allow {}
+    }
+    statement {
+      or_statement {
+        statement {
+          byte_match_statement {
+            search_string          = "OPTIONS"
+            positional_constraint = "EXACTLY"
+            field_to_match {
+              method {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+          }
+        }
+        statement {
+          byte_match_statement {
+            search_string          = "GET"
+            positional_constraint = "EXACTLY"
+            field_to_match {
+              method {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+          }
+        }
+        statement {
+          byte_match_statement {
+            search_string          = "POST"
+            positional_constraint = "EXACTLY"
+            field_to_match {
+              method {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "waf-methods"
+      sampled_requests_enabled   = true
+    }
+  }
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "api-waf"
+    sampled_requests_enabled   = true
+  }
+}
+
+# Associar WAF ao estágio da API
+resource "aws_wafv2_web_acl_association" "api_waf_assoc" {
+  resource_arn = aws_api_gateway_stage.stage.arn
+  web_acl_arn = aws_wafv2_web_acl.api_waf.arn
+}
+
 
 # Comentando o recurso de grupo de logs para Lambda, pois ele já existe
 # O Lambda criará automaticamente o grupo de logs quando necessário
