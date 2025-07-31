@@ -506,29 +506,36 @@
         </div>
 
         <!-- Conteúdo principal (visível apenas após login) -->
-        <div id="mainContent" style="display: none;">
-          <div class="form-group">
-            <label for="themeInput">Qual o tema do seu site?</label>
-            <div class="input-wrapper">
-              <i class="fa-solid fa-lightbulb"></i>
-              <input type="text" id="themeInput" placeholder="Ex: café artesanal, viagens na Europa, tecnologia sustentável..." required>
-            </div>
-            
-            <div class="theme-examples">
-              <span class="theme-tag" onclick="selectTheme('café artesanal')">café artesanal</span>
-              <span class="theme-tag" onclick="selectTheme('viagens na Europa')">viagens na Europa</span>
-              <span class="theme-tag" onclick="selectTheme('tecnologia sustentável')">tecnologia sustentável</span>
-              <span class="theme-tag" onclick="selectTheme('fotografia')">fotografia</span>
-              <span class="theme-tag" onclick="selectTheme('gastronomia')">gastronomia</span>
-            </div>
-          </div>
 
-          <div class="button-container">
-            <button id="generateButton">
-              <span class="spinner" id="spinner"></span>
-              <span id="buttonText">Gerar Site</span>
-            </button>
-          </div>
+        <div id="mainContent" style="display: none;">
+          <form id="siteForm" enctype="multipart/form-data" autocomplete="off">
+            <div class="form-group">
+              <label for="themeInput">Qual o tema do seu site?</label>
+              <div class="input-wrapper">
+                <i class="fa-solid fa-lightbulb"></i>
+                <input type="text" id="themeInput" name="site_theme" placeholder="Ex: café artesanal, viagens na Europa, tecnologia sustentável..." required>
+              </div>
+              <div class="theme-examples">
+                <span class="theme-tag" onclick="selectTheme('café artesanal')">café artesanal</span>
+                <span class="theme-tag" onclick="selectTheme('viagens na Europa')">viagens na Europa</span>
+                <span class="theme-tag" onclick="selectTheme('tecnologia sustentável')">tecnologia sustentável</span>
+                <span class="theme-tag" onclick="selectTheme('fotografia')">fotografia</span>
+                <span class="theme-tag" onclick="selectTheme('gastronomia')">gastronomia</span>
+              </div>
+              <div class="form-group" style="margin-top:20px;">
+                <label for="imageInput">Imagem para personalização <span style="color:#CC0000">(obrigatório)</span></label>
+                <input type="file" id="imageInput" name="context_image" accept="image/*" required>
+                <small id="imageUploadStatus" style="display:block;margin-top:5px;color:#666;"></small>
+              </div>
+            </div>
+
+            <div class="button-container">
+              <button id="generateButton" type="submit">
+                <span class="spinner" id="spinner"></span>
+                <span id="buttonText">Gerar Site</span>
+              </button>
+            </div>
+          </form>
 
           <div class="result" id="resultContainer">
             <h3 id="resultTitle"></h3>
@@ -537,6 +544,11 @@
               <i class="fa-solid fa-external-link-alt"></i>
               <span>Acessar o site gerado</span>
             </a>
+          </div>
+
+          <div class="history" id="historyContainer" style="margin-top:40px;display:none;">
+            <h3>Histórico de sites gerados</h3>
+            <ul id="historyList" style="list-style:none;padding:0;"></ul>
           </div>
         </div>
 
@@ -747,72 +759,88 @@
     }
 
     // Função para gerar o site
-    async function generateSite() {
-      // Verificar autenticação
+    async function generateSite(event) {
+      event.preventDefault();
       if (!checkAuth()) {
         redirectToLogin();
         return;
       }
-      
-      // Validar entrada
       const theme = themeInput.value.trim();
-      
       if (!theme) {
         showError('Por favor, insira um tema para o site.');
         return;
       }
-
-      // Obter o ID do usuário do token
+      const imageInput = document.getElementById('imageInput');
+      if (!imageInput.files || !imageInput.files[0]) {
+        showError('Por favor, selecione uma imagem para personalização.');
+        return;
+      }
       const userId = localStorage.getItem('user_id');
       const idToken = localStorage.getItem('id_token');
-      
       if (!userId || !idToken) {
         showError('Erro de autenticação. Por favor, faça login novamente.');
         logout();
         return;
       }
-
-      // Mostrar spinner e desabilitar botão
       spinner.style.display = 'inline-block';
       buttonText.textContent = 'Gerando...';
       generateButton.disabled = true;
-      
       try {
-        // Configurar headers com token de autenticação
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        };
-        
-        // Fazer requisição para a API
+        const form = document.getElementById('siteForm');
+        const formData = new FormData(form);
+        formData.append('user_id', userId);
+        // Enviar para API Gateway/Lambda
         const response = await fetch(apiEndpoint, {
           method: 'POST',
-          headers: headers,
-          body: JSON.stringify({ 
-            site_theme: theme,
-            user_id: userId
-          })
+          headers: {
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: formData
         });
-        
-        // Processar resposta
         const data = await response.json();
-        
         if (response.ok) {
-          // Sucesso
           showSuccess(data);
         } else {
-          // Erro da API
           showError(`Erro: ${data.error || 'Não foi possível gerar o site.'}`);
         }
       } catch (error) {
-        // Erro de rede ou outro erro
         showError(`Erro: ${error.message || 'Ocorreu um erro ao tentar gerar o site.'}`);
       } finally {
-        // Restaurar botão
         spinner.style.display = 'none';
         buttonText.textContent = 'Gerar Site';
         generateButton.disabled = false;
       }
+    }
+
+    // Função para renderizar histórico
+    async function loadHistory() {
+      const idToken = localStorage.getItem('id_token');
+      if (!idToken) return;
+      try {
+        const response = await fetch(apiEndpoint.replace(/\/generate-site.*/, '/historico'), {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${idToken}` }
+        });
+        if (!response.ok) return;
+        const history = await response.json();
+        renderHistory(history);
+      } catch (e) { /* ignorar */ }
+    }
+
+    function renderHistory(history) {
+      const container = document.getElementById('historyContainer');
+      const list = document.getElementById('historyList');
+      if (!history || !Array.isArray(history) || history.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+      list.innerHTML = '';
+      history.slice().reverse().forEach(site => {
+        const li = document.createElement('li');
+        li.innerHTML = `<a href="${site.url}" target="_blank">${site.tema}</a> <span style='color:#888;font-size:13px;'>(${new Date(site.data).toLocaleString()})</span>`;
+        list.appendChild(li);
+      });
+      container.style.display = 'block';
     }
 
     // Função para mostrar mensagem de sucesso
@@ -861,7 +889,12 @@
       });
       
       // Adicionar evento de clique ao botão de geração
-      generateButton.addEventListener('click', generateSite);
+      const siteForm = document.getElementById('siteForm');
+      siteForm.addEventListener('submit', generateSite);
+      // Carregar histórico ao exibir conteúdo principal
+      if (mainContent.style.display !== 'none') {
+        loadHistory();
+      }
 
       // Permitir envio ao pressionar Enter no campo de tema
       themeInput.addEventListener('keypress', function(event) {

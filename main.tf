@@ -1,3 +1,74 @@
+# Lambda para histórico de sites
+resource "aws_lambda_function" "history" {
+  function_name    = "bedrock-history"
+  filename         = "${path.module}/lambda_history.py"
+  handler          = "lambda_history.lambda_handler"
+  runtime          = var.lambda_runtime
+  timeout          = 10
+  memory_size      = 128
+  role             = aws_iam_role.lambda_role.arn
+  environment {
+    variables = {
+      BUCKET_NAME = aws_s3_bucket.output_bucket.id
+    }
+  }
+  tags = var.tags
+}
+
+# Permissão para API Gateway invocar Lambda de histórico
+resource "aws_lambda_permission" "api_gateway_history" {
+  statement_id  = "AllowExecutionFromAPIGatewayHistory"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.history.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.site_generator.execution_arn}/*/GET/historico"
+}
+
+# Novo recurso /historico na API Gateway
+resource "aws_api_gateway_resource" "history" {
+  rest_api_id = aws_api_gateway_rest_api.site_generator.id
+  parent_id   = aws_api_gateway_rest_api.site_generator.root_resource_id
+  path_part   = "historico"
+}
+
+# Método GET protegido por Cognito
+resource "aws_api_gateway_method" "history_get" {
+  rest_api_id   = aws_api_gateway_rest_api.site_generator.id
+  resource_id   = aws_api_gateway_resource.history.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito_authorizer.id
+}
+
+# Integração com Lambda
+resource "aws_api_gateway_integration" "history_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.site_generator.id
+  resource_id             = aws_api_gateway_resource.history.id
+  http_method             = aws_api_gateway_method.history_get.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.history.invoke_arn
+}
+
+# Resposta do método
+resource "aws_api_gateway_method_response" "history_200" {
+  rest_api_id = aws_api_gateway_rest_api.site_generator.id
+  resource_id = aws_api_gateway_resource.history.id
+  http_method = aws_api_gateway_method.history_get.http_method
+  status_code = "200"
+  response_models = { "application/json" = "Empty" }
+  response_parameters = { "method.response.header.Access-Control-Allow-Origin" = true }
+}
+
+# Resposta da integração
+resource "aws_api_gateway_integration_response" "history_integration_200" {
+  rest_api_id = aws_api_gateway_rest_api.site_generator.id
+  resource_id = aws_api_gateway_resource.history.id
+  http_method = aws_api_gateway_method.history_get.http_method
+  status_code = aws_api_gateway_method_response.history_200.status_code
+  response_parameters = { "method.response.header.Access-Control-Allow-Origin" = "'*'" }
+  depends_on = [aws_api_gateway_integration.history_lambda]
+}
 # main.tf
 # Implementação da infraestrutura para site estático com S3, CloudFront, API Gateway e Bedrock
 
@@ -5,31 +76,37 @@
 # S3 BUCKETS PARA INTERFACE DO USUÁRIO E SITES GERADOS
 # ---------------------------------------------------------------------------------------------------------------------
 
-# Bucket S3 para interface do usuário (form.html)
+
+# ---------------------------------------------------------------------------------------------------------------------
+# S3 BUCKET PARA INTERFACE DO USUÁRIO (form.html) VIA CLOUDFRONT + OAC + HTTPS + COGNITO
+# ---------------------------------------------------------------------------------------------------------------------
+
+# Bucket S3 para interface do usuário (form.html) - sem website hosting, acesso apenas via CloudFront
 resource "aws_s3_bucket" "ui_bucket" {
   bucket = var.ui_bucket_name
   tags   = var.tags
 }
 
-# Configuração de bloqueio de acesso público para o bucket UI (bloqueando acesso público)
+# Bloqueio de acesso público direto ao bucket UI
 resource "aws_s3_bucket_public_access_block" "ui_bucket" {
   bucket = aws_s3_bucket.ui_bucket.id
-
-  # Bloqueando acesso público direto, pois o acesso será via CloudFront
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
 
-# Política de bucket para permitir acesso do CloudFront ao bucket UI
+
+# ...existing code...
+
+# Política do bucket UI: permite acesso apenas via CloudFront (OAC)
 resource "aws_s3_bucket_policy" "ui_bucket_policy" {
   bucket = aws_s3_bucket.ui_bucket.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowCloudFrontServicePrincipal"
+        Sid       = "AllowCloudFrontServicePrincipalOAC"
         Effect    = "Allow"
         Principal = { Service = "cloudfront.amazonaws.com" }
         Action    = "s3:GetObject"
@@ -42,8 +119,6 @@ resource "aws_s3_bucket_policy" "ui_bucket_policy" {
       }
     ]
   })
-
-  # Garantir que a política seja aplicada após a criação do bucket, configuração de acesso público e CloudFront
   depends_on = [
     aws_s3_bucket.ui_bucket,
     aws_s3_bucket_public_access_block.ui_bucket,
@@ -51,25 +126,11 @@ resource "aws_s3_bucket_policy" "ui_bucket_policy" {
   ]
 }
 
-# Configuração de versionamento para o bucket UI (opcional)
+# Versionamento opcional para o bucket UI
 resource "aws_s3_bucket_versioning" "ui_bucket" {
   bucket = aws_s3_bucket.ui_bucket.id
-
   versioning_configuration {
     status = var.enable_versioning ? "Enabled" : "Disabled"
-  }
-}
-
-# Configuração de website estático para o bucket UI
-resource "aws_s3_bucket_website_configuration" "ui_bucket" {
-  bucket = aws_s3_bucket.ui_bucket.id
-
-  index_document {
-    suffix = "form.html"
-  }
-
-  error_document {
-    key = "form.html"
   }
 }
 
@@ -79,15 +140,14 @@ resource "aws_s3_bucket" "output_bucket" {
   tags   = var.tags
 }
 
-# Configuração de bloqueio de acesso público para o bucket de saída (permitindo acesso público)
 resource "aws_s3_bucket_public_access_block" "output_bucket" {
   bucket = aws_s3_bucket.output_bucket.id
 
-  # Permitindo acesso público para os sites gerados
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  # Bloqueando todo acesso público direto ao bucket de saída
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 # Configuração de versionamento para o bucket de saída (opcional)
@@ -246,26 +306,30 @@ resource "aws_cloudfront_distribution" "output_distribution" {
   }
 }
 
-# Política de bucket para permitir acesso do CloudFront ao bucket de saída
-resource "aws_s3_bucket_policy" "output_bucket" {
+# Política de bucket para permitir acesso apenas do CloudFront (OAC) ao bucket de saída
+resource "aws_s3_bucket_policy" "output_bucket_policy" {
   bucket = aws_s3_bucket.output_bucket.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowPublicRead"
+        Sid       = "AllowCloudFrontServicePrincipalOAC"
         Effect    = "Allow"
-        Principal = "*"
+        Principal = { Service = "cloudfront.amazonaws.com" }
         Action    = "s3:GetObject"
         Resource  = "${aws_s3_bucket.output_bucket.arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.output_distribution.arn
+          }
+        }
       }
     ]
   })
-
-  # Garantir que a política seja aplicada após a criação do bucket e da configuração de acesso público
   depends_on = [
     aws_s3_bucket.output_bucket,
-    aws_s3_bucket_public_access_block.output_bucket
+    aws_s3_bucket_public_access_block.output_bucket,
+    aws_cloudfront_distribution.output_distribution
   ]
 }
 
@@ -1167,6 +1231,24 @@ def lambda_handler(event, context):
         )
         
         print(f"HTML salvo com sucesso em s3://{bucket_name}/{html_path}")
+        
+        # Atualizar histórico do usuário
+        history_key = f"history/{user_id}.json"
+        now = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        new_entry = {"url": site_url, "tema": site_theme, "data": now}
+        try:
+            resp = s3.get_object(Bucket=bucket_name, Key=history_key)
+            history = json.loads(resp['Body'].read())
+        except Exception:
+            history = []
+        history.append(new_entry)
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=history_key,
+            Body=json.dumps(history),
+            ContentType='application/json'
+        )
+        print(f"Histórico atualizado em s3://{bucket_name}/{history_key}")
         
         # Invalidar o cache do CloudFront
         cloudfront = boto3.client('cloudfront')

@@ -1,3 +1,8 @@
+# Nome do bucket de uploads de imagens
+variable "uploads_bucket_name" {
+  description = "Nome único para o bucket S3 que armazenará uploads de imagens dos usuários"
+  type        = string
+}
 # variables.tf
 # Definição de todas as variáveis utilizadas no projeto
 
@@ -85,7 +90,7 @@ variable "cloudfront_log_prefix" {
 variable "bedrock_model_id" {
   description = "ID do modelo Bedrock a ser utilizado para geração de HTML"
   type        = string
-  default     = "anthropic.claude-3-haiku-20240307-v1:0" # Claude 3 Haiku
+  default     = "anthropic.claude-3-sonnet-20240229-v1:0" # Claude 3 Sonnet
 }
 
 variable "html_prompt_template" {

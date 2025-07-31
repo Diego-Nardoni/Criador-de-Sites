@@ -4,7 +4,9 @@ Este projeto Terraform provisiona uma arquitetura AWS para hospedar sites estát
 
 ## Arquitetura
 
-![Arquitetura](./generated-diagrams/s3-bedrock-cloudfront-architecture.png)
+![Arquitetura](./generated-diagrams/s3-bedrock-cloudfront-architecture-updated.png)
+
+Para uma documentação detalhada de todos os recursos da infraestrutura, consulte o [Mapeamento de Recursos](./resource-mapping.md).
 
 A arquitetura implementada consiste em:
 
@@ -108,7 +110,7 @@ A resposta incluirá a URL do CloudFront onde o site gerado pode ser acessado.
 | `enable_cloudfront_logs` | Habilita logs de acesso para a distribuição CloudFront | `bool` | `false` | Não |
 | `cloudfront_log_bucket` | Nome do bucket para armazenar logs do CloudFront | `string` | `null` | Não |
 | `cloudfront_log_prefix` | Prefixo para os logs do CloudFront | `string` | `"cloudfront-logs/"` | Não |
-| `bedrock_model_id` | ID do modelo Bedrock a ser utilizado | `string` | `"anthropic.claude-3-haiku-20240307-v1:0"` | Não |
+| `bedrock_model_id` | ID do modelo Bedrock a ser utilizado | `string` | `"anthropic.claude-3-sonnet-20240229-v1:0"` | Não |
 | `html_prompt_template` | Template de prompt para geração do HTML via Bedrock | `string` | `"Crie um HTML para um site sobre [TEMA]..."` | Não |
 | `api_name` | Nome da API Gateway | `string` | `"site-generator-api"` | Não |
 | `api_stage_name` | Nome do estágio da API Gateway | `string` | `"prod"` | Não |
