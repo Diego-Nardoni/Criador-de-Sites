@@ -16,8 +16,8 @@ resource "aws_cognito_user_pool_client" "app_client" {
   allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_scopes                 = ["email", "openid", "profile"]
   allowed_oauth_flows_user_pool_client = true
-  callback_urls                        = ["https://${var.cloudfront_domain}/form.html"]
-  logout_urls                          = ["https://${var.cloudfront_domain}/form.html"]
+  callback_urls                        = ["https://${aws_cloudfront_distribution.ui_distribution.domain_name}/form.html"]
+  logout_urls                          = ["https://${aws_cloudfront_distribution.ui_distribution.domain_name}/form.html"]
   supported_identity_providers         = ["COGNITO"]
   explicit_auth_flows                  = ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
 }

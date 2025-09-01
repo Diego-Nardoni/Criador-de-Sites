@@ -33,14 +33,26 @@ variable "tags" {
   default     = {}
 }
 
+
+
+
+# [OPCIONAL] Nome do bucket S3 para interface do usuário (UI)
+# Agora o nome é gerado automaticamente no main.tf com sufixo único.
 variable "ui_bucket_name" {
-  description = "Nome do bucket S3 para interface do usuário (UI)"
+  description = "[OBSOLETA] Não é mais necessário definir. O nome do bucket UI é gerado automaticamente."
   type        = string
+  default     = null
 }
 
+
+
+
+# [OPCIONAL] Nome do bucket S3 para sites gerados
+# Agora o nome é gerado automaticamente no main.tf com sufixo único.
 variable "output_bucket_name" {
-  description = "Nome do bucket S3 para sites gerados"
+  description = "[OBSOLETA] Não é mais necessário definir. O nome do bucket de saída é gerado automaticamente."
   type        = string
+  default     = null
 }
 # Nome do bucket de uploads de imagens
 variable "uploads_bucket_name" {

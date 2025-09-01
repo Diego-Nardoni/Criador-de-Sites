@@ -610,17 +610,17 @@
     const loginRequired = document.getElementById('loginRequired');
 
     // Endpoint da API Gateway e CloudFront (serão substituídos pelo Terraform)
-    const apiEndpoint = '{{API_ENDPOINT}}';
-    const cloudfrontDomain = '{{CLOUDFRONT_DOMAIN}}';
-    
+    const apiEndpoint = 'https://oked63ndi5.execute-api.us-east-1.amazonaws.com/prod/generate-site';
+  const cloudfrontDomain = 'd1nu7lx8f4bjar.cloudfront.net';
+
     // Configurações do Cognito
     const cognitoConfig = {
       // Estes valores serão substituídos dinamicamente pelo Terraform
-      userPoolId: '{{USER_POOL_ID}}',
-      clientId: '{{CLIENT_ID}}',
-      domain: '{{COGNITO_DOMAIN}}',
-      redirectUri: window.location.href,
-      region: '{{REGION}}'
+      userPoolId: 'us-east-1_GMXl02Npv',
+      clientId: '3mq13r0esa9rjq3fo7mh29i2sv',
+      domain: 'site-generator',
+      redirectUri: `https://d1nu7lx8f4bjar.cloudfront.net/form.html`,
+      region: 'us-east-1'
     };
     
     // Função para gerar UUID v4 (para identificação do usuário)

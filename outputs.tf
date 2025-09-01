@@ -1,3 +1,8 @@
+# Output do endpoint da API para uso dinâmico no frontend
+output "api_endpoint_url" {
+  description = "URL do endpoint da API para geração de sites"
+  value       = "${aws_api_gateway_stage.stage.invoke_url}/generate-site"
+}
 # No changes to apply as the specified outputs do not exist.
 # outputs.tf
 # Definição dos outputs do módulo
@@ -39,19 +44,16 @@ output "cloudfront_distribution_id" {
   value       = aws_cloudfront_distribution.output_distribution.id
 }
 
-output "cloudfront_url" {
-  description = "URL completa da distribuição CloudFront"
-  value       = "https://${aws_cloudfront_distribution.output_distribution.domain_name}"
+
+
+output "region" {
+  description = "Região AWS utilizada para os recursos."
+  value       = var.region
 }
 
-output "api_endpoint" {
-  description = "URL do endpoint da API para geração de sites"
-  value       = "${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.root.path}"
-}
-
-output "api_endpoint_full" {
-  description = "URL completa do endpoint da API para geração de sites (incluindo protocolo)"
-  value       = "${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.root.path}"
+output "cognito_user_pool_id" {
+  description = "ID do Cognito User Pool para uso no frontend."
+  value       = aws_cognito_user_pool.user_pool.id
 }
 
 output "api_key" {
@@ -68,13 +70,13 @@ output "bedrock_model_used" {
 
 output "curl_example" {
   description = "Exemplo de comando curl para testar a API"
-  value       = var.api_key_required ? "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.root.path} -H 'Content-Type: application/json' -H 'x-api-key: ${aws_api_gateway_api_key.api_key[0].value}' -d '{\"site_theme\": \"exemplo de tema\"}'" : "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.root.path} -H 'Content-Type: application/json' -d '{\"site_theme\": \"exemplo de tema\"}'"
+  value       = var.api_key_required ? "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.generate_site.path} -H 'Content-Type: application/json' -H 'x-api-key: ${aws_api_gateway_api_key.api_key[0].value}' -d '{\"site_theme\": \"exemplo de tema\"}'" : "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.generate_site.path} -H 'Content-Type: application/json' -d '{\"site_theme\": \"exemplo de tema\"}'"
   sensitive   = true
 }
 
 output "curl_example_with_placeholder" {
   description = "Exemplo de comando curl para testar a API (com placeholder para a API key)"
-  value       = var.api_key_required ? "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.root.path} -H 'Content-Type: application/json' -H 'x-api-key: YOUR_API_KEY' -d '{\"site_theme\": \"exemplo de tema\"}'" : "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.root.path} -H 'Content-Type: application/json' -d '{\"site_theme\": \"exemplo de tema\"}'"
+  value       = var.api_key_required ? "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.generate_site.path} -H 'Content-Type: application/json' -H 'x-api-key: YOUR_API_KEY' -d '{\"site_theme\": \"exemplo de tema\"}'" : "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.generate_site.path} -H 'Content-Type: application/json' -d '{\"site_theme\": \"exemplo de tema\"}'"
 }
 
 output "deployment_instructions" {
@@ -87,10 +89,17 @@ EOT
 }
 
 
-output "cloudfront_domain" {
-  description = "Domínio do CloudFront para o frontend"
-  value       = var.cloudfront_domain
+
+output "cognito_domain_prefix" {
+  description = "Prefixo do domínio Cognito para uso no frontend."
+  value       = aws_cognito_user_pool_domain.domain.domain
 }
+
+output "cognito_app_client_id" {
+  description = "ID do App Client do Cognito para uso no frontend."
+  value       = aws_cognito_user_pool_client.app_client.id
+}
+
 
 
 output "dynamodb_status_table" {

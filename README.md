@@ -83,27 +83,27 @@ Para detalhes completos de variáveis, outputs, troubleshooting e arquitetura, c
 
 ## Uso
 
-### 1. Inicializar o Terraform
+
+### Deploy automatizado com Makefile
+
+Para garantir que o `form.html` enviado ao S3 sempre contenha o App Client ID correto do Cognito, utilize o Makefile:
 
 ```bash
-terraform init
+make all
 ```
 
-### 2. Revisar o plano de execução
+Esse comando executa:
+- `terraform apply` para provisionar a infraestrutura
+- Substituição automática do placeholder `COGNITO_CLIENT_ID` pelo valor real exportado do Terraform
+- Upload do `form.html` atualizado para o bucket S3 do frontend
 
-```bash
-terraform plan -var="bucket_name=meu-site-estatico-unico"
-```
-
-### 3. Aplicar a configuração
-
-```bash
-terraform apply -var="bucket_name=meu-site-estatico-unico"
-```
+Você pode executar etapas individuais:
+- `make update-form-html` (atualiza apenas o client_id no HTML)
+- `make upload-s3` (envia o HTML para o S3)
 
 ### 4. Testar a API
 
-Após a conclusão do `terraform apply`, você receberá o endpoint da API e um exemplo de comando curl para testá-la:
+Após o deploy, você receberá o endpoint da API e um exemplo de comando curl para testá-la:
 
 ```bash
 curl -X POST https://abcdef123.execute-api.us-east-1.amazonaws.com/prod/generate-site \

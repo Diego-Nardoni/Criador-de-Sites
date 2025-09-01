@@ -25,11 +25,13 @@ module "website" {
   source = "../../"
 
   # Parâmetros obrigatórios
-  ui_bucket_name = "${local.bucket_name}-ui"
-  output_bucket_name = "${local.bucket_name}-output"
+  # Os nomes dos buckets agora são gerados automaticamente pelo módulo principal.
   
   # Passando a região
   region = var.aws_region
+
+  # Parâmetro obrigatório para uploads
+  uploads_bucket_name = "uploads-${local.bucket_name}"
 
   # Parâmetros opcionais com valores personalizados
   tags = {

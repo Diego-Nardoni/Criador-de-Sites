@@ -1,4 +1,50 @@
+# Step Functions State Machine para orquestração do fluxo de geração de site
+resource "aws_sfn_state_machine" "generate_site" {
+  name     = "GenerateSiteStateMachine"
+  role_arn = aws_iam_role.lambda_exec.arn
+  definition = jsonencode({
+    "Comment": "Orquestração da geração de site com validação, Bedrock, S3, status e notificação",
+    "StartAt": "ValidarInput",
+    "States": {
+      "ValidarInput": {
+        "Type": "Task",
+        "Resource": aws_lambda_function.validate_input.arn,
+        "Next": "GerarHTML"
+      },
+      "GerarHTML": {
+        "Type": "Task",
+        "Resource": aws_lambda_function.generate_html.arn,
+        "Next": "ArmazenarS3"
+      },
+      "ArmazenarS3": {
+        "Type": "Task",
+        "Resource": aws_lambda_function.store_site.arn,
+        "Next": "AtualizarStatus"
+      },
+      "AtualizarStatus": {
+        "Type": "Task",
+        "Resource": aws_lambda_function.update_status.arn,
+        "Next": "NotificarUsuario"
+      },
+      "NotificarUsuario": {
+        "Type": "Task",
+        "Resource": aws_lambda_function.notify_user.arn,
+        "End": true
+      }
+    }
+  })
+  tags = var.tags
+}
+# Geração de sufixo aleatório para garantir unicidade global dos buckets
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
 
+# Locais para nomes únicos dos buckets
+locals {
+  ui_bucket_name     = "ui-bucket-${random_id.bucket_suffix.hex}"
+  output_bucket_name = "output-bucket-${random_id.bucket_suffix.hex}"
+}
 # main.tf
 # Implementação da infraestrutura para site estático com S3, CloudFront, API Gateway e Bedrock
 
@@ -13,8 +59,8 @@
 
 # Bucket S3 para interface do usuário (form.html) - sem website hosting, acesso apenas via CloudFront
 resource "aws_s3_bucket" "ui_bucket" {
-   bucket = var.ui_bucket_name
-   tags   = var.tags
+  bucket = local.ui_bucket_name
+  tags   = var.tags
 }
 
 # Bloqueio de acesso público direto ao bucket UI
@@ -63,7 +109,7 @@ resource "aws_s3_bucket_versioning" "ui_bucket" {
 
 # Bucket S3 para sites gerados
 resource "aws_s3_bucket" "output_bucket" {
-  bucket = var.output_bucket_name
+  bucket = local.output_bucket_name
   tags   = var.tags
 }
 
@@ -104,8 +150,8 @@ resource "aws_s3_bucket_website_configuration" "output_bucket" {
 
 # Origin Access Control para CloudFront (UI bucket)
 resource "aws_cloudfront_origin_access_control" "ui_bucket" {
-  name                              = "${var.ui_bucket_name}-oac"
-  description                       = "OAC para acesso ao bucket ${var.ui_bucket_name}"
+  name                              = "${local.ui_bucket_name}-oac"
+  description                       = "OAC para acesso ao bucket ${local.ui_bucket_name}"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -113,8 +159,8 @@ resource "aws_cloudfront_origin_access_control" "ui_bucket" {
 
 # Origin Access Control para CloudFront (Output bucket)
 resource "aws_cloudfront_origin_access_control" "output_bucket" {
-  name                              = "${var.output_bucket_name}-oac-${formatdate("YYYYMMDDhhmmss", timestamp())}"
-  description                       = "OAC para acesso ao bucket ${var.output_bucket_name}"
+  name                              = "${local.output_bucket_name}-oac-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  description                       = "OAC para acesso ao bucket ${local.output_bucket_name}"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -126,13 +172,13 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
   is_ipv6_enabled     = true
   default_root_object = "form.html"
   price_class         = var.cloudfront_price_class
-  comment             = "Distribuição para interface do usuário em ${var.ui_bucket_name}"
+  comment             = "Distribuição para interface do usuário em ${local.ui_bucket_name}"
   tags                = var.tags
 
   # Configuração da origem (S3)
   origin {
     domain_name              = aws_s3_bucket.ui_bucket.bucket_regional_domain_name
-    origin_id                = "S3-${var.ui_bucket_name}"
+    origin_id                = "S3-${local.ui_bucket_name}"
     origin_access_control_id = aws_cloudfront_origin_access_control.ui_bucket.id
   }
 
@@ -140,7 +186,7 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = "S3-${var.ui_bucket_name}"
+    target_origin_id       = "S3-${local.ui_bucket_name}"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
 
@@ -178,13 +224,13 @@ resource "aws_cloudfront_distribution" "output_distribution" {
   is_ipv6_enabled     = true
   default_root_object = "index.html"
   price_class         = var.cloudfront_price_class
-  comment             = "Distribuição para sites gerados em ${var.output_bucket_name}"
+  comment             = "Distribuição para sites gerados em ${local.output_bucket_name}"
   tags                = var.tags
 
   # Configuração da origem (S3)
   origin {
     domain_name              = aws_s3_bucket.output_bucket.bucket_regional_domain_name
-    origin_id                = "S3-${var.output_bucket_name}"
+    origin_id                = "S3-${local.output_bucket_name}"
     origin_access_control_id = aws_cloudfront_origin_access_control.output_bucket.id
   }
 
@@ -192,7 +238,7 @@ resource "aws_cloudfront_distribution" "output_distribution" {
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = "S3-${var.output_bucket_name}"
+    target_origin_id       = "S3-${local.output_bucket_name}"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
 
@@ -276,13 +322,13 @@ resource "aws_s3_object" "form_html" {
             replace(
               file("${path.module}/form.html"),
               "{{API_ENDPOINT}}",
-              "${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.root.path}"
+              "${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.generate_site.path}"
             ),
             "{{USER_POOL_ID}}",
-            "COGNITO_USER_POOL_ID"
+            aws_cognito_user_pool.user_pool.id
           ),
           "{{CLIENT_ID}}",
-          "COGNITO_CLIENT_ID"
+          aws_cognito_user_pool_client.app_client.id
         ),
         "{{COGNITO_DOMAIN}}",
         var.cognito_domain_prefix
@@ -315,13 +361,13 @@ resource "aws_s3_object" "login_html" {
             replace(
               file("${path.module}/login.html"),
               "{{API_ENDPOINT}}",
-              "${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.root.path}"
+              "${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.generate_site.path}"
             ),
             "{{USER_POOL_ID}}",
-            "COGNITO_USER_POOL_ID"
+            aws_cognito_user_pool.user_pool.id
           ),
           "{{CLIENT_ID}}",
-          "COGNITO_CLIENT_ID"
+          aws_cognito_user_pool_client.app_client.id
         ),
         "{{COGNITO_DOMAIN}}",
         var.cognito_domain_prefix
@@ -396,11 +442,67 @@ resource "aws_api_gateway_rest_api" "site_generator" {
   tags = var.tags
 }
 
-# Recurso raiz da API
-resource "aws_api_gateway_resource" "root" {
+
+
+
+## Recurso /generate-site
+resource "aws_api_gateway_resource" "generate_site" {
   rest_api_id = aws_api_gateway_rest_api.site_generator.id
   parent_id   = aws_api_gateway_rest_api.site_generator.root_resource_id
   path_part   = "generate-site"
+}
+
+# Método POST para o recurso /generate-site
+resource "aws_api_gateway_method" "generate_post" {
+  rest_api_id   = aws_api_gateway_rest_api.site_generator.id
+  resource_id   = aws_api_gateway_resource.generate_site.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+# Integração Service Proxy para Step Functions StartExecution
+resource "aws_api_gateway_integration" "sfn_generate_post" {
+  rest_api_id             = aws_api_gateway_rest_api.site_generator.id
+  resource_id             = aws_api_gateway_resource.generate_site.id
+  http_method             = aws_api_gateway_method.generate_post.http_method
+  integration_http_method = "POST"
+  type                    = "AWS"
+  uri                     = "arn:aws:apigateway:${var.region}:states:action/StartExecution"
+  credentials             = aws_iam_role.step_function_exec.arn
+  request_templates = {
+    "application/json" = <<EOF
+      #set($inputRoot = $input.path('$'))
+      {
+        "input": "$util.escapeJavaScript($input.json('$')).replaceAll("\'", "'")",
+        "stateMachineArn": "${aws_sfn_state_machine.site_generation.arn}"
+      }
+    EOF
+  }
+  passthrough_behavior = "WHEN_NO_TEMPLATES"
+  content_handling     = "CONVERT_TO_TEXT"
+}
+
+# Resposta do método POST
+resource "aws_api_gateway_method_response" "generate_post_response" {
+  rest_api_id = aws_api_gateway_rest_api.site_generator.id
+  resource_id = aws_api_gateway_resource.generate_site.id
+  http_method = aws_api_gateway_method.generate_post.http_method
+  status_code = "200"
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+# Resposta da integração POST
+resource "aws_api_gateway_integration_response" "generate_post_integration_response" {
+  rest_api_id = aws_api_gateway_rest_api.site_generator.id
+  resource_id = aws_api_gateway_resource.generate_site.id
+  http_method = aws_api_gateway_method.generate_post.http_method
+  status_code = aws_api_gateway_method_response.generate_post_response.status_code
+  response_templates = {
+    "application/json" = ""
+  }
+  depends_on = [aws_api_gateway_integration.sfn_generate_post]
 }
 
 # Método ANY para o recurso raiz (fallback para evitar erros de método incorreto)
@@ -453,55 +555,6 @@ resource "aws_api_gateway_integration_response" "root_any_integration_response" 
   ]
 }
 
-# Método ANY para o recurso generate-site (fallback para evitar erros de método incorreto)
-resource "aws_api_gateway_method" "any" {
-  rest_api_id   = aws_api_gateway_rest_api.site_generator.id
-  resource_id   = aws_api_gateway_resource.root.id
-  http_method   = "ANY"
-  authorization = "NONE"
-}
-
-# Integração do método ANY para o recurso generate-site (fallback para evitar erros de método incorreto)
-resource "aws_api_gateway_integration" "any_integration" {
-  rest_api_id = aws_api_gateway_rest_api.site_generator.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = aws_api_gateway_method.any.http_method
-  type        = "MOCK"
-
-  request_templates = {
-    "application/json" = "{\"statusCode\": 200}"
-  }
-}
-
-# Resposta do método ANY
-resource "aws_api_gateway_method_response" "any_response" {
-  rest_api_id = aws_api_gateway_rest_api.site_generator.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = aws_api_gateway_method.any.http_method
-  status_code = "200"
-
-  response_models = {
-    "application/json" = "Empty"
-  }
-}
-
-# Resposta da integração ANY
-resource "aws_api_gateway_integration_response" "any_integration_response" {
-  rest_api_id = aws_api_gateway_rest_api.site_generator.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = aws_api_gateway_method.any.http_method
-  status_code = aws_api_gateway_method_response.any_response.status_code
-
-  response_templates = {
-    "application/json" = jsonencode({
-      message = "Este endpoint aceita apenas método POST. Consulte a documentação para mais informações."
-    })
-  }
-
-  depends_on = [
-    aws_api_gateway_integration.any_integration
-  ]
-}
 
 
 
@@ -512,7 +565,7 @@ resource "aws_api_gateway_integration_response" "any_integration_response" {
 # Configuração CORS - Método OPTIONS
 resource "aws_api_gateway_method" "options" {
   rest_api_id   = aws_api_gateway_rest_api.site_generator.id
-  resource_id   = aws_api_gateway_resource.root.id
+  resource_id   = aws_api_gateway_rest_api.site_generator.root_resource_id
   http_method   = "OPTIONS"
   authorization = "NONE"
 }
@@ -520,7 +573,7 @@ resource "aws_api_gateway_method" "options" {
 # Integração CORS
 resource "aws_api_gateway_integration" "options_integration" {
   rest_api_id = aws_api_gateway_rest_api.site_generator.id
-  resource_id = aws_api_gateway_resource.root.id
+  resource_id = aws_api_gateway_rest_api.site_generator.root_resource_id
   http_method = aws_api_gateway_method.options.http_method
   type        = "MOCK"
 
@@ -532,7 +585,7 @@ resource "aws_api_gateway_integration" "options_integration" {
 # Resposta do método OPTIONS
 resource "aws_api_gateway_method_response" "options_response" {
   rest_api_id = aws_api_gateway_rest_api.site_generator.id
-  resource_id = aws_api_gateway_resource.root.id
+  resource_id = aws_api_gateway_rest_api.site_generator.root_resource_id
   http_method = aws_api_gateway_method.options.http_method
   status_code = "200"
 
@@ -550,7 +603,7 @@ resource "aws_api_gateway_method_response" "options_response" {
 # Resposta da integração OPTIONS
 resource "aws_api_gateway_integration_response" "options_integration_response" {
   rest_api_id = aws_api_gateway_rest_api.site_generator.id
-  resource_id = aws_api_gateway_resource.root.id
+  resource_id = aws_api_gateway_rest_api.site_generator.root_resource_id
   http_method = aws_api_gateway_method.options.http_method
   status_code = aws_api_gateway_method_response.options_response.status_code
 
@@ -571,11 +624,11 @@ resource "aws_api_gateway_deployment" "deployment" {
 
   triggers = {
     redeployment = sha1(jsonencode([
-      aws_api_gateway_resource.root.id,
+  aws_api_gateway_rest_api.site_generator.root_resource_id,
       aws_api_gateway_method.options.id,
       aws_api_gateway_integration.options_integration.id,
-      aws_api_gateway_method.any.id,
-      aws_api_gateway_integration.any_integration.id,
+  # aws_api_gateway_method.any.id,  # removido
+  # aws_api_gateway_integration.any_integration.id,  # removido
       aws_api_gateway_method.root_any.id,
       aws_api_gateway_integration.root_any.id
     ]))
@@ -588,10 +641,10 @@ resource "aws_api_gateway_deployment" "deployment" {
   depends_on = [
     aws_api_gateway_method.options,
     aws_api_gateway_integration.options_integration,
-    aws_api_gateway_method.any,
-    aws_api_gateway_integration.any_integration,
     aws_api_gateway_method.root_any,
-    aws_api_gateway_integration.root_any
+    aws_api_gateway_integration.root_any,
+    aws_api_gateway_method.generate_post,
+    aws_api_gateway_integration.sfn_generate_post
   ]
 }
 
