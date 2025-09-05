@@ -26,7 +26,7 @@ resource "random_id" "suffix" {
 # Bucket para armazenar logs do CloudFront e API Gateway
 resource "aws_s3_bucket" "logs" {
   bucket = local.logs_bucket_name
-  
+
   tags = {
     Environment = "prod"
     Team        = "DevOps"
@@ -54,7 +54,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
     status = "Enabled"
 
     expiration {
-      days = 90  # Expirar logs após 90 dias
+      days = 90 # Expirar logs após 90 dias
     }
   }
 }
@@ -65,7 +65,7 @@ module "website" {
 
   # Parâmetros obrigatórios
   # Os nomes dos buckets agora são gerados automaticamente pelo módulo principal.
-  
+
   # Passando a região
   region = var.aws_region
 
@@ -85,18 +85,18 @@ module "website" {
   enable_versioning = true
 
   # Configurações avançadas do CloudFront
-  cloudfront_price_class = "PriceClass_200"  # Europa, América do Norte, Ásia
-  cloudfront_min_ttl     = 60                # 1 minuto
-  cloudfront_default_ttl = 43200             # 12 horas
-  cloudfront_max_ttl     = 86400             # 24 horas
-  
+  cloudfront_price_class = "PriceClass_200" # Europa, América do Norte, Ásia
+  cloudfront_min_ttl     = 60               # 1 minuto
+  cloudfront_default_ttl = 43200            # 12 horas
+  cloudfront_max_ttl     = 86400            # 24 horas
+
   # Configuração de logs do CloudFront
   enable_cloudfront_logs = true
   cloudfront_log_bucket  = aws_s3_bucket.logs.id
   cloudfront_log_prefix  = "cf-logs/website/"
-  
+
   # Configurações do Bedrock
-  bedrock_model_id = "anthropic.claude-3-sonnet-20240229-v1:0"  # Usando Claude 3 Sonnet para melhor qualidade
+  bedrock_model_id     = "anthropic.claude-3-sonnet-20240229-v1:0" # Usando Claude 3 Sonnet para melhor qualidade
   html_prompt_template = <<EOF
 Crie uma página HTML moderna e profissional para um site corporativo sobre [TEMA].
 
@@ -113,16 +113,16 @@ Retorne apenas o código HTML completo, sem explicações adicionais.
 EOF
 
   # Configurações da API Gateway
-  api_name = "site-generator-enterprise"
-  api_stage_name = "v1"
+  api_name         = "site-generator-enterprise"
+  api_stage_name   = "v1"
   api_key_required = true
-  enable_api_logs = true
-  
+  enable_api_logs  = true
+
   # Configurações do Lambda
-  lambda_runtime = "python3.9"
-  lambda_timeout = 120  # 2 minutos
-  lambda_memory_size = 512  # 512 MB
-  
+  lambda_runtime     = "python3.9"
+  lambda_timeout     = 120 # 2 minutos
+  lambda_memory_size = 512 # 512 MB
+
   # Habilitar suporte para múltiplos sites
   enable_multi_site = true
 }

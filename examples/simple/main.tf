@@ -26,7 +26,7 @@ module "website" {
 
   # Parâmetros obrigatórios
   # Os nomes dos buckets agora são gerados automaticamente pelo módulo principal.
-  
+
   # Passando a região
   region = var.aws_region
 
@@ -43,14 +43,14 @@ module "website" {
 
   # Configurações do CloudFront
   cloudfront_price_class = "PriceClass_100"
-  cloudfront_default_ttl = 3600  # 1 hora
-  
+  cloudfront_default_ttl = 3600 # 1 hora
+
   # Configurações do Bedrock
-  bedrock_model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+  bedrock_model_id     = "anthropic.claude-3-haiku-20240307-v1:0"
   html_prompt_template = "Crie uma página HTML simples para um site sobre [TEMA] com design moderno. A página deve ter um título, uma mensagem informativa sobre o tema, e um design atraente usando apenas HTML e CSS inline (sem arquivos externos). Inclua uma mensagem discreta no rodapé indicando que o conteúdo foi gerado via Amazon Bedrock. Retorne apenas o código HTML completo, sem explicações adicionais."
-  
+
   # Configurações da API Gateway
-  api_name = "site-generator-simple"
+  api_name         = "site-generator-simple"
   api_key_required = true
 }
 

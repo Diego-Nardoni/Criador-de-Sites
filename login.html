@@ -98,6 +98,14 @@
       margin-bottom: 10px;
       font-size: 15px;
     }
+    #debug-info {
+      margin-top: 20px;
+      text-align: left;
+      font-size: 12px;
+      color: #666;
+      word-break: break-all;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -118,45 +126,94 @@
       <button type="submit" class="button">Entrar</button>
     </form>
     <a href="#" class="signup-link" id="signup-link">Não tem uma conta? Cadastre-se</a>
+    <div id="debug-info"></div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.2.1/dist/amazon-cognito-identity.min.js"></script>
   <script>
     // Configuração Cognito
     const poolData = {
-      UserPoolId: '{{USER_POOL_ID}}', // Substitua pelo seu User Pool ID
-      ClientId: '{{CLIENT_ID}}' // Substitua pelo seu App Client ID
+      UserPoolId: 'us-east-1_y9o0aLYWN', // Substitua pelo seu User Pool ID
+      ClientId: '6pe9sqg64547vktnvns7ml445f' // Substitua pelo seu App Client ID
     };
     const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
+    // Função para exibir informações de depuração
+    function showDebugInfo(message) {
+      const debugInfoElement = document.getElementById('debug-info');
+      debugInfoElement.textContent = message;
+      debugInfoElement.style.display = 'block';
+      console.error(message);
+    }
+
     document.getElementById('login-form').addEventListener('submit', function(e) {
       e.preventDefault();
+      
+      // Validações iniciais
+      if (!poolData.UserPoolId || !poolData.ClientId) {
+        showDebugInfo('Erro: Configuração do Cognito incompleta. UserPoolId ou ClientId não configurados.');
+        return;
+      }
+
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
+      
+      // Validações de entrada
+      if (!username || !password) {
+        showDebugInfo('Erro: Usuário e senha são obrigatórios.');
+        return;
+      }
+
       const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails({
         Username: username,
         Password: password
       });
+      
       const userData = {
         Username: username,
         Pool: userPool
       };
+      
       const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
-      cognitoUser.authenticateUser(authenticationDetails, {
-        onSuccess: function(result) {
-          // Salvar tokens e redirecionar para a aplicação
-          localStorage.setItem('id_token', result.getIdToken().getJwtToken());
-          localStorage.setItem('access_token', result.getAccessToken().getJwtToken());
-          window.location.href = 'form.html';
-        },
-        onFailure: function(err) {
-          document.getElementById('error-message').innerText = err.message || 'Erro ao autenticar.';
-          document.getElementById('error-message').style.display = 'block';
-        }
-      });
+      
+      try {
+        cognitoUser.authenticateUser(authenticationDetails, {
+          onSuccess: function(result) {
+            // Salvar tokens e redirecionar para a aplicação
+            localStorage.setItem('id_token', result.getIdToken().getJwtToken());
+            localStorage.setItem('access_token', result.getAccessToken().getJwtToken());
+            window.location.href = 'form.html';
+          },
+          onFailure: function(err) {
+            const errorMessage = err.message || 'Erro ao autenticar.';
+            document.getElementById('error-message').innerText = errorMessage;
+            document.getElementById('error-message').style.display = 'block';
+            
+            // Informações detalhadas de depuração
+            showDebugInfo(`Erro de autenticação: ${errorMessage}
+UserPoolId: ${poolData.UserPoolId}
+ClientId: ${poolData.ClientId}
+Username: ${username.replace(/./g, '*')}
+Erro completo: ${JSON.stringify(err, null, 2)}`);
+          },
+          newPasswordRequired: function(userAttributes, requiredAttributes) {
+            showDebugInfo('Nova senha é necessária. Por favor, entre em contato com o suporte.');
+          }
+        });
+      } catch (error) {
+        showDebugInfo(`Erro inesperado: ${error.message}`);
+      }
     });
+
     document.getElementById('signup-link').addEventListener('click', function(e) {
       e.preventDefault();
       window.location.href = 'signup.html'; // Implemente uma tela de cadastro customizada se desejar
+    });
+
+    // Verificação de configuração na inicialização
+    window.addEventListener('load', function() {
+      if (!poolData.UserPoolId || !poolData.ClientId) {
+        showDebugInfo('Erro: Configuração do Cognito não foi corretamente preenchida. Verifique os placeholders.');
+      }
     });
   </script>
 </body>

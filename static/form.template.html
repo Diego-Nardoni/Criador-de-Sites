@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Sites com Amazon Bedrock</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    ...existing code...
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <div class="logo">
+          <i class="fa-solid fa-robot"></i>
+          <h1>Gerador de Sites com Amazon Bedrock</h1>
+        </div>
+        <p class="description">Crie sites personalizados instantaneamente com IA generativa da AWS</p>
+      </div>
+      <div class="card-body">
+        <!-- Área de autenticação -->
+        <div class="auth-container" id="authContainer">
+          <div class="user-info" id="userInfo" style="display: none;">
+            <div class="user-avatar" id="userAvatar"></div>
+            <div class="user-details">
+              <div class="user-name" id="userName">Carregando...</div>
+              <div class="user-email" id="userEmail">Carregando...</div>
+            </div>
+          </div>
+          <div class="auth-buttons" id="authButtons">
+            <a href="#" class="auth-button login" id="loginButton">
+              <i class="fa-solid fa-right-to-bracket"></i>
+              Entrar
+            </a>
+          </div>
+        </div>
+        <!-- Conteúdo principal (visível apenas após login) -->
+        <div id="mainContent" style="display: none;">
+          <form id="siteForm" enctype="multipart/form-data" autocomplete="off">
+            <div class="form-group">
+              <label for="themeInput">Qual o tema do seu site?</label>
+              <div class="input-wrapper">
+                <i class="fa-solid fa-lightbulb"></i>
+                <input type="text" id="themeInput" name="site_theme" placeholder="Ex: café artesanal, viagens na Europa, tecnologia sustentável..." required>
+              </div>
+              <div class="theme-examples">
+                <span class="theme-tag" onclick="selectTheme('café artesanal')">café artesanal</span>
+                <span class="theme-tag" onclick="selectTheme('viagens na Europa')">viagens na Europa</span>
+                <span class="theme-tag" onclick="selectTheme('tecnologia sustentável')">tecnologia sustentável</span>
+                <span class="theme-tag" onclick="selectTheme('fotografia')">fotografia</span>
+                <span class="theme-tag" onclick="selectTheme('gastronomia')">gastronomia</span>
+              </div>
+              <div class="form-group" style="margin-top:20px;">
+                <label for="imageInput">Imagem para personalização <span style="color:#CC0000">(obrigatório)</span></label>
+                <input type="file" id="imageInput" name="context_image" accept="image/*" required>
+                <small id="imageUploadStatus" style="display:block;margin-top:5px;color:#666;"></small>
+              </div>
+            </div>
+            <div class="button-container">
+              <button id="generateButton" type="submit">
+                <span class="spinner" id="spinner"></span>
+                <span id="buttonText">Gerar Site</span>
+              </button>
+            </div>
+          </form>
+          <div class="result" id="resultContainer">
+            <h3 id="resultTitle"></h3>
+            <p id="resultMessage"></p>
+            <a href="#" id="siteUrl" class="site-link" target="_blank">
+              <i class="fa-solid fa-external-link-alt"></i>
+              <span>Acessar o site gerado</span>
+            </a>
+          </div>
+          <div class="history" id="historyContainer" style="margin-top:40px;display:none;">
+            <h3>Histórico de sites gerados</h3>
+            <ul id="historyList" style="list-style:none;padding:0;"></ul>
+          </div>
+        </div>
+        <!-- Mensagem de login necessário -->
+        <div class="login-required" id="loginRequired">
+          <i class="fa-solid fa-lock"></i>
+          <h2>Login necessário</h2>
+          <p>Para utilizar o gerador de sites, é necessário fazer login com sua conta. Clique no botão abaixo para acessar.</p>
+          <a href="#" class="auth-button login" id="loginButtonBig">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            Fazer Login
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <div class="footer-content">
+      <div class="aws-services">
+        Powered by
+        <i class="fa-brands fa-aws" title="Amazon Web Services"></i>
+        <span>Bedrock</span>
+        <i class="fa-solid fa-circle-dot" style="font-size: 4px; vertical-align: middle;"></i>
+        <span>S3</span>
+        <i class="fa-solid fa-circle-dot" style="font-size: 4px; vertical-align: middle;"></i>
+        <span>CloudFront</span>
+        <i class="fa-solid fa-circle-dot" style="font-size: 4px; vertical-align: middle;"></i>
+        <span>API Gateway</span>
+        <i class="fa-solid fa-circle-dot" style="font-size: 4px; vertical-align: middle;"></i>
+        <span>Cognito</span>
+      </div>
+      <div class="divider"></div>
+      <p><small>© 2025 - Terraform S3 + Bedrock + CloudFront + API Gateway + Cognito</small></p>
+    </div>
+  </footer>
+  <script>
+    // Elementos do DOM
+    ...existing code...
+    // Endpoint da API Gateway e CloudFront (serão substituídos pelo Terraform)
+    const apiEndpoint = "{{API_ENDPOINT}}";
+    const cloudfrontDomain = "{{CLOUDFRONT_DOMAIN}}";
+    // Configurações do Cognito
+    const cognitoConfig = {
+      userPoolId: "{{COGNITO_USER_POOL_ID}}",
+      clientId: "{{COGNITO_CLIENT_ID}}",
+      domain: "{{COGNITO_DOMAIN}}",
+      redirectUri: `{{REDIRECT_URI}}`,
+      region: "{{COGNITO_REGION}}"
+    };
+    ...existing code...
+  </script>
+</body>
+</html>

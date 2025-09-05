@@ -1,114 +1,142 @@
-# Output do endpoint da API para uso dinâmico no frontend
-output "api_endpoint_url" {
-  description = "URL do endpoint da API para geração de sites"
-  value       = "${aws_api_gateway_stage.stage.invoke_url}/generate-site"
-}
-# No changes to apply as the specified outputs do not exist.
-# outputs.tf
-# Definição dos outputs do módulo
+# Saídas Centralizadas para Infraestrutura
 
-output "ui_bucket_name" {
-  description = "Nome do bucket S3 criado para hospedagem da interface do usuário"
-  value       = aws_s3_bucket.ui_bucket.id
+# Informações Comuns
+output "project_name" {
+  description = "Nome do projeto"
+  value       = var.project_name
 }
 
-output "ui_bucket_arn" {
-  description = "ARN do bucket S3 da interface do usuário"
-  value       = aws_s3_bucket.ui_bucket.arn
+output "environment" {
+  description = "Ambiente de implantação"
+  value       = var.environment
 }
 
-
-# Endpoint HTTPS da interface do usuário via CloudFront
-
-output "output_bucket_name" {
-  description = "Nome do bucket S3 criado para hospedagem dos sites gerados"
-  value       = aws_s3_bucket.output_bucket.id
+# Saídas de Módulos Comuns
+output "base_tags" {
+  description = "Tags base aplicadas a todos os recursos"
+  value       = module.common.base_tags
 }
 
-output "ui_cloudfront_url" {
-  description = "URL HTTPS da interface do usuário servida via CloudFront"
-  value       = "https://${aws_cloudfront_distribution.ui_distribution.domain_name}/form.html"
-}
-output "output_bucket_arn" {
-  description = "ARN do bucket S3 dos sites gerados"
-  value       = aws_s3_bucket.output_bucket.arn
+# Saídas de IAM
+output "lambda_role_arn" {
+  description = "ARN da função IAM base para Lambda"
+  value       = module.iam.lambda_role_arn
 }
 
-output "cloudfront_domain_name" {
-  description = "Nome de domínio da distribuição CloudFront"
-  value       = aws_cloudfront_distribution.output_distribution.domain_name
+# Saídas de Armazenamento
+output "s3_bucket_name" {
+  description = "Nome do bucket S3 principal"
+  value       = module.s3.ui_bucket_id
 }
 
-output "cloudfront_distribution_id" {
-  description = "ID da distribuição CloudFront"
-  value       = aws_cloudfront_distribution.output_distribution.id
+output "s3_bucket_arn" {
+  description = "ARN do bucket S3 principal"
+  value       = module.s3.ui_bucket_arn
 }
 
-
-
-output "region" {
-  description = "Região AWS utilizada para os recursos."
-  value       = var.region
-}
-
-output "cognito_user_pool_id" {
-  description = "ID do Cognito User Pool para uso no frontend."
-  value       = aws_cognito_user_pool.user_pool.id
-}
-
-output "api_key" {
-  description = "Chave de API para acesso à API (somente se api_key_required = true)"
-  value       = var.api_key_required ? aws_api_gateway_api_key.api_key[0].value : null
-  sensitive   = true
-}
-
-
-output "bedrock_model_used" {
-  description = "Modelo do Bedrock utilizado para gerar o HTML"
-  value       = var.bedrock_model_id
-}
-
-output "curl_example" {
-  description = "Exemplo de comando curl para testar a API"
-  value       = var.api_key_required ? "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.generate_site.path} -H 'Content-Type: application/json' -H 'x-api-key: ${aws_api_gateway_api_key.api_key[0].value}' -d '{\"site_theme\": \"exemplo de tema\"}'" : "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.generate_site.path} -H 'Content-Type: application/json' -d '{\"site_theme\": \"exemplo de tema\"}'"
-  sensitive   = true
-}
-
-output "curl_example_with_placeholder" {
-  description = "Exemplo de comando curl para testar a API (com placeholder para a API key)"
-  value       = var.api_key_required ? "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.generate_site.path} -H 'Content-Type: application/json' -H 'x-api-key: YOUR_API_KEY' -d '{\"site_theme\": \"exemplo de tema\"}'" : "curl -X POST ${aws_api_gateway_stage.stage.invoke_url}${aws_api_gateway_resource.generate_site.path} -H 'Content-Type: application/json' -d '{\"site_theme\": \"exemplo de tema\"}'"
-}
-
-output "deployment_instructions" {
-  description = "Instruções para acessar a interface do usuário."
-  value       = <<EOT
-    1. Acesse a interface do usuário via CloudFront (HTTPS):
-        https://${aws_cloudfront_distribution.ui_distribution.domain_name}/form.html
-    2. (Opcional) Configure seu domínio customizado no CloudFront, se desejar.
-EOT
-}
-
-
-
-output "cognito_domain_prefix" {
-  description = "Prefixo do domínio Cognito para uso no frontend."
-  value       = aws_cognito_user_pool_domain.domain.domain
-}
-
-output "cognito_app_client_id" {
-  description = "ID do App Client do Cognito para uso no frontend."
-  value       = aws_cognito_user_pool_client.app_client.id
-}
-
-
-
+# Saídas de Banco de Dados
 output "dynamodb_status_table" {
   description = "Nome da tabela DynamoDB de status"
-  value       = aws_dynamodb_table.site_gen_status.name
+  value       = module.dynamodb.status_table_name
 }
 
 output "dynamodb_user_profiles" {
   description = "Nome da tabela DynamoDB de perfis de usuário"
-  value       = aws_dynamodb_table.user_profiles.name
+  value       = module.dynamodb.user_profiles_table_name
 }
 
+output "dynamodb_status_table_arn" {
+  description = "ARN da tabela DynamoDB de status"
+  value       = module.dynamodb.status_table_arn
+}
+
+output "dynamodb_user_profiles_arn" {
+  description = "ARN da tabela DynamoDB de perfis de usuário"
+  value       = module.dynamodb.user_profiles_table_arn
+}
+
+# Saídas de Monitoramento
+output "monitoring_sns_topic_arn" {
+  description = "ARN do tópico SNS de monitoramento"
+  value       = module.monitoring.sns_topic_arn
+}
+
+output "apigw_5xx_alarm_arn" {
+  description = "ARN do alarme 5XX da API Gateway"
+  value       = module.monitoring.apigw_5xx_alarm_arn
+}
+
+output "apigw_4xx_alarm_arn" {
+  description = "ARN do alarme 4XX da API Gateway"
+  value       = module.monitoring.apigw_4xx_alarm_arn
+}
+
+output "apigw_latency_alarm_arn" {
+  description = "ARN do alarme de latência da API Gateway"
+  value       = module.monitoring.apigw_latency_alarm_arn
+}
+
+output "apigw_count_zero_alarm_arn" {
+  description = "ARN do alarme de ausência de requisições na API Gateway"
+  value       = module.monitoring.apigw_count_zero_alarm_arn
+}
+
+# Saídas de Step Functions
+output "step_function_arn" {
+  description = "ARN da Step Function principal"
+  value       = module.step_functions.state_machine_arn
+}
+
+output "step_function_role_arn" {
+  description = "ARN do IAM Role da Step Function"
+  value       = module.step_functions.step_function_role_arn
+}
+
+# Saídas de API Gateway
+output "api_gateway_id" {
+  description = "ID do API Gateway"
+  value       = module.api_gateway.api_id
+}
+
+output "api_gateway_invoke_url" {
+  description = "URL de invocação da API"
+  value       = module.api_gateway.invoke_url
+}
+
+output "api_gateway_name" {
+  description = "Nome do API Gateway"
+  value       = module.api_gateway.name
+}
+
+output "api_gateway_stage_name" {
+  description = "Nome do stage da API Gateway"
+  value       = module.api_gateway.stage_name
+}
+
+# Saídas de CloudFront
+output "cloudfront_ui_distribution_domain_name" {
+  description = "Domain name da distribuição CloudFront da UI"
+  value       = module.cloudfront.ui_distribution_domain_name
+}
+
+output "cloudfront_output_distribution_domain_name" {
+  description = "Domain name da distribuição CloudFront dos sites gerados"
+  value       = module.cloudfront.output_distribution_domain_name
+}
+
+# Saídas de WAF
+output "waf_acl_arn" {
+  description = "ARN do WAF Web ACL"
+  value       = module.waf.waf_acl_arn
+}
+
+# Informações de Região
+output "primary_region" {
+  description = "Região AWS primária"
+  value       = var.region
+}
+
+output "secondary_region" {
+  description = "Região AWS secundária"
+  value       = var.secondary_region
+}

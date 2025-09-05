@@ -1,0 +1,31 @@
+{
+  "Comment": "Orquestração da geração de sites",
+  "StartAt": "ValidateInput",
+  "States": {
+    "ValidateInput": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_VALIDATE_INPUT_ARN}",
+      "Next": "GenerateHTML"
+    },
+    "GenerateHTML": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_GENERATE_HTML_ARN}",
+      "Next": "StoreSite"
+    },
+    "StoreSite": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_STORE_SITE_ARN}",
+      "Next": "UpdateStatus"
+    },
+    "UpdateStatus": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_UPDATE_STATUS_ARN}",
+      "Next": "NotifyUser"
+    },
+    "NotifyUser": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_NOTIFY_USER_ARN}",
+      "End": true
+    }
+  }
+}
