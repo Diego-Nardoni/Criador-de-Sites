@@ -8,7 +8,7 @@ Sistema serverless de geração de sites utilizando inteligência artificial, pr
 ## 🏗️ Arquitetura de Solução
 
 ### Diagrama Arquitetural Completo
-![Arquitetura Completa](generated-diagrams/Arquitetura.png)
+![Arquitetura Completa](generated-diagrams/arquitetura.png)
 
 ### Descrição Arquitetural
 Nossa solução implementa uma arquitetura serverless altamente modular e escalável, utilizando os serviços mais avançados da AWS para criar uma plataforma de geração de sites com IA. O diagrama acima ilustra a complexidade e a elegância da nossa infraestrutura, que combina múltiplos serviços AWS para criar uma experiência de geração de sites única e eficiente.
