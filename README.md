@@ -3,7 +3,26 @@
 ## 🌐 Visão Geral
 
 ### Objetivo do Projeto
-Sistema serverless de geração de sites utilizando inteligência artificial, projetado com foco em escalabilidade, segurança e eficiência de custos, seguindo as melhores práticas do AWS Well-Architected Framework.
+📌 POC – Implementação de MCP Server para Suporte Arquitetural e Boas Práticas em Terraform/AWS
+
+Descrição:
+Este projeto consiste em uma Prova de Conceito (POC) para avaliar a integração de um MCP Server (Model Context Protocol Server) no suporte à visão arquitetural de sistemas em AWS, com foco em:
+
+Aplicação de boas práticas de Infraestrutura como Código (IaC) utilizando Terraform;
+
+Padronização e governança de recursos AWS (segurança, identidade, compute, storage e observabilidade);
+
+Exploração de padrões arquiteturais modernos e guidelines do AWS Well-Architected Framework;
+
+Criação de uma infraestrutura de referência, construída exclusivamente para fins de estudo, testes e validação de conceitos.
+
+Objetivo Técnico:
+
+Demonstrar como o uso de MCP Servers pode ampliar a automação e a contextualização de arquiteturas na AWS.
+
+Avaliar a viabilidade de adotar fluxos de IaC com melhor rastreabilidade, modularidade e segurança.
+
+Fornecer uma base para estudos avançados em arquitetura de sistemas distribuídos, orquestração de infraestrutura e governança multi-conta em ambientes corporativos.
 
 ## 🏗️ Arquitetura de Solução
 
@@ -11,7 +30,7 @@ Sistema serverless de geração de sites utilizando inteligência artificial, pr
 ![Arquitetura Completa](generated-diagrams/arquitetura.png)
 
 ### Descrição Arquitetural
-Nossa solução implementa uma arquitetura serverless altamente modular e escalável, utilizando os serviços mais avançados da AWS para criar uma plataforma de geração de sites com IA. O diagrama acima ilustra a complexidade e a elegância da nossa infraestrutura, que combina múltiplos serviços AWS para criar uma experiência de geração de sites única e eficiente.
+Esta solução implementa uma arquitetura serverless altamente modular e escalável, utilizando os serviços mais avançados da AWS para criar uma plataforma de geração de sites com IA. O diagrama acima ilustra a complexidade e a elegância da nossa infraestrutura, que combina múltiplos serviços AWS para criar uma experiência de geração de sites única e eficiente.
 
 ## 🔑 Componentes Principais
 
