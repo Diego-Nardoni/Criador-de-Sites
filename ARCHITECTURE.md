@@ -7,17 +7,21 @@ Sistema serverless de geração de sites utilizando inteligência artificial, pr
 
 ## 📊 Diagramas de Arquitetura
 
-### 1. Arquitetura Completa
-![Arquitetura Completa](generated-diagrams/ai-site-generator-complete-architecture.png)
-*Visão geral completa da arquitetura incluindo todos os componentes AWS*
-
-### 2. Segurança e Rede
-![Segurança e Rede](generated-diagrams/ai-site-generator-security-network.png)
+### Segurança e Observabilidade
+![Segurança e Rede](generated-diagrams/ai-static-site-generator-security-observability.png)
 *Foco na topologia de rede, segurança e controle de acesso*
 
-### 3. Fluxo de Dados e Processamento
-![Fluxo de Dados](generated-diagrams/ai-site-generator-data-flow.png)
+### Fluxo de Dados e Processamento
+![Fluxo de Dados](generated-diagrams/ai-static-site-generator-data-flow.png)
 *Pipeline de processamento numerado mostrando o fluxo de dados*
+
+### Fluxo Geral
+![Fluxo de Dados](generated-diagrams/ai-static-site-generator-professional.png)
+*Fluxo de dados logica da geração de site via prompt*
+
+### High Level
+![Fluxo de Dados](generated-diagrams/ai-static-site-generator-high-level.png)
+*Fluxo High Level*
 
 ## 🏗️ Componentes da Arquitetura
 
