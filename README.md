@@ -27,7 +27,7 @@ Fornecer uma base para estudos avançados em arquitetura de sistemas distribuíd
 ## 🏗️ Arquitetura de Solução
 
 ### Diagrama Arquitetural Completo
-![Arquitetura Completa](generated-diagrams/arquitetura.png)
+![Arquitetura Completa](generated-diagrams/Arquitetura.png)
 
 ### Descrição Arquitetural
 Esta solução implementa uma arquitetura serverless altamente modular e escalável, utilizando os serviços mais avançados da AWS para criar uma plataforma de geração de sites com IA. O diagrama acima ilustra a complexidade e a elegância da nossa infraestrutura, que combina múltiplos serviços AWS para criar uma experiência de geração de sites única e eficiente.
@@ -124,9 +124,11 @@ Para uma análise completa da arquitetura, consulte nossa [documentação técni
    terraform init
    terraform validate
    terraform plan -out tf.plan
-   terraform apply tf.plan
+
+3. Crie a infra utilziando o make - Atualizar o form html com os dados do Cognito
+  make all   
    ```
-3. Saídas úteis:
+4. Saídas úteis:
    - URL da API (REST): `module.api_gateway.invoke_url`
    - Distribuição CloudFront: consulte as saídas do módulo `cloudfront`.
 
