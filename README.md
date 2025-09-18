@@ -123,11 +123,12 @@ Para uma análise completa da arquitetura, consulte nossa [documentação técni
    ```bash
    terraform init
    terraform validate
-   terraform plan -out tf.plan
+   terraform plan 
 
 3. Crie a infra utilziando o make - Atualizar o form html com os dados do Cognito
-  make all   
-   ```
+   ```bash
+   make all   
+   
 4. Saídas úteis:
    - URL da API (REST): `module.api_gateway.invoke_url`
    - Distribuição CloudFront: consulte as saídas do módulo `cloudfront`.
