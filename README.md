@@ -127,9 +127,13 @@ Para uma análise completa da arquitetura, consulte nossa [documentação técni
 
 3. Crie a infra utilziando o make - Atualizar o form html com os dados do Cognito
    ```bash
-   make all   
+   make all  
+
+4. Destruindo a infra
+   ```bash
+   terraform init && terraform destroy -var-file=environments/prod/prod.tfvars -auto-approve  
    
-4. Saídas úteis:
+5. Saídas úteis:
    - URL da API (REST): `module.api_gateway.invoke_url`
    - Distribuição CloudFront: consulte as saídas do módulo `cloudfront`.
 
