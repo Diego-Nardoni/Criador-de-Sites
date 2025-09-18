@@ -1,0 +1,180 @@
+{
+  "Comment": "Orquestração da geração de sites",
+  "StartAt": "CheckBreaker",
+  "States": {
+    "ValidateInput": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_VALIDATE_INPUT_ARN}",
+      "Next": "GenerateHTML",
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ]
+    },
+    "GenerateHTML": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_GENERATE_HTML_ARN}",
+      "Next": "StoreSite",
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ]
+    },
+    "StoreSite": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_STORE_SITE_ARN}",
+      "Next": "UpdateStatus",
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ]
+    },
+    "UpdateStatus": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_UPDATE_STATUS_ARN}",
+      "Next": "NotifyUser",
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ]
+    },
+    "NotifyUser": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_NOTIFY_USER_ARN}",
+      "End": true,
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ]
+    },
+    "AtualizarStatusErro": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_UPDATE_STATUS_ARN}",
+      "Parameters": {
+        "status": "ERROR"
+      },
+      "Next": "CleanupSite"
+    },
+    "CheckBreaker": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_CHECK_BREAKER_ARN}",
+      "ResultPath": "$.breaker",
+      "Next": "BreakerChoice"
+    },
+    "BreakerChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.breaker.state",
+          "StringEquals": "open",
+          "Next": "CircuitOpenHandler"
+        }
+      ],
+      "Default": "ValidateInput"
+    },
+    "CircuitOpenHandler": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_UPDATE_STATUS_ARN}",
+      "End": true,
+      "Parameters": {
+        "status": "CIRCUIT_OPEN"
+      }
+    },
+    "CleanupSite": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_CLEANUP_SITE_ARN}",
+      "ResultPath": "$.cleanup",
+      "End": true
+    }
+  }
+}

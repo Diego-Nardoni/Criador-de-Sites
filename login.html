@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login necessário</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <style>
+    :root {
+      --primary-color: #232F3E;
+      --secondary-color: #FF9900;
+      --background-color: #F2F3F3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--background-color);
+      color: var(--primary-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 400px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      padding: 40px;
+      margin: 0 20px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--primary-color);
+    }
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      color: #666;
+    }
+    .input-group {
+      margin-bottom: 18px;
+      text-align: left;
+    }
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--primary-color);
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .button {
+      display: inline-block;
+      background-color: var(--secondary-color);
+      color: var(--primary-color);
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 18px;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+    }
+    .button:hover {
+      background-color: #e68a00;
+      transform: translateY(-2px);
+    }
+    .login-icon {
+      font-size: 48px;
+      color: var(--primary-color);
+      margin-bottom: 16px;
+    }
+    .signup-link {
+      margin-top: 18px;
+      display: block;
+      color: var(--secondary-color);
+      text-decoration: underline;
+      font-size: 15px;
+    }
+    .error {
+      color: #d32f2f;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+    #debug-info {
+      margin-top: 20px;
+      text-align: left;
+      font-size: 12px;
+      color: #666;
+      word-break: break-all;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="login-icon">🔒</div>
+    <h1>Login necessário</h1>
+    <p>Para utilizar o gerador de sites, faça login com sua conta.</p>
+    <form id="login-form">
+      <div class="input-group">
+        <label for="username">Usuário</label>
+        <input type="text" id="username" name="username" required autocomplete="username">
+      </div>
+      <div class="input-group">
+        <label for="password">Senha</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+      <div class="error" id="error-message" style="display:none;"></div>
+      <button type="submit" class="button">Entrar</button>
+    </form>
+    <a href="#" class="signup-link" id="signup-link">Não tem uma conta? Cadastre-se</a>
+    <div id="debug-info"></div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.2.1/dist/amazon-cognito-identity.min.js"></script>
+  <script>
+    // Configuração Cognito
+    const poolData = {
+      UserPoolId: 'us-east-1_y9o0aLYWN', // Substitua pelo seu User Pool ID
+      ClientId: '6pe9sqg64547vktnvns7ml445f' // Substitua pelo seu App Client ID
+    };
+    const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+    // Função para exibir informações de depuração
+    function showDebugInfo(message) {
+      const debugInfoElement = document.getElementById('debug-info');
+      debugInfoElement.textContent = message;
+      debugInfoElement.style.display = 'block';
+      console.error(message);
+    }
+
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Validações iniciais
+      if (!poolData.UserPoolId || !poolData.ClientId) {
+        showDebugInfo('Erro: Configuração do Cognito incompleta. UserPoolId ou ClientId não configurados.');
+        return;
+      }
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      // Validações de entrada
+      if (!username || !password) {
+        showDebugInfo('Erro: Usuário e senha são obrigatórios.');
+        return;
+      }
+
+      const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+        Username: username,
+        Password: password
+      });
+      
+      const userData = {
+        Username: username,
+        Pool: userPool
+      };
+      
+      const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+      
+      try {
+        cognitoUser.authenticateUser(authenticationDetails, {
+          onSuccess: function(result) {
+            // Salvar tokens e redirecionar para a aplicação
+            localStorage.setItem('id_token', result.getIdToken().getJwtToken());
+            localStorage.setItem('access_token', result.getAccessToken().getJwtToken());
+            window.location.href = 'form.html';
+          },
+          onFailure: function(err) {
+            const errorMessage = err.message || 'Erro ao autenticar.';
+            document.getElementById('error-message').innerText = errorMessage;
+            document.getElementById('error-message').style.display = 'block';
+            
+            // Informações detalhadas de depuração
+            showDebugInfo(`Erro de autenticação: ${errorMessage}
+UserPoolId: ${poolData.UserPoolId}
+ClientId: ${poolData.ClientId}
+Username: ${username.replace(/./g, '*')}
+Erro completo: ${JSON.stringify(err, null, 2)}`);
+          },
+          newPasswordRequired: function(userAttributes, requiredAttributes) {
+            showDebugInfo('Nova senha é necessária. Por favor, entre em contato com o suporte.');
+          }
+        });
+      } catch (error) {
+        showDebugInfo(`Erro inesperado: ${error.message}`);
+      }
+    });
+
+    document.getElementById('signup-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      window.location.href = 'signup.html'; // Implemente uma tela de cadastro customizada se desejar
+    });
+
+    // Verificação de configuração na inicialização
+    window.addEventListener('load', function() {
+      if (!poolData.UserPoolId || !poolData.ClientId) {
+        showDebugInfo('Erro: Configuração do Cognito não foi corretamente preenchida. Verifique os placeholders.');
+      }
+    });
+  </script>
+</body>
+</html>

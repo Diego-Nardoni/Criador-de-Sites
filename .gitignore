@@ -1,0 +1,94 @@
+# Terraform state files
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Terraform variables with sensitive information
+*.tfvars
+!*.tfvars.example
+
+# Logs
+*.log
+
+# Environment-specific files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Backup files
+*.bak
+*.backup
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Compiled files
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# Dependency directories
+node_modules/
+jspm_packages/
+vendor/
+
+# Temporary files
+tmp/
+temp/
+
+# Security-sensitive files
+id_rsa
+id_rsa.pub
+*.pem
+*.key
+
+# Build output
+dist/
+build/
+out/
+
+# Miscellaneous
+.serverless/
+.dynamodb/
+
+# AWS-specific
+*.pem
+*.pub
+aws-credentials
+aws-credentials.json
+
+# Terraform plan output
+tfplan
+tfplan.json
+
+# Local development files
+*.local
+.env.local
+
+# Secrets and sensitive configuration
+*secret*
+*secrets*

@@ -1,0 +1,168 @@
+{
+  "Comment": "Orquestração da geração de sites: validação, geração, armazenamento, status, notificação.",
+  "StartAt": "ValidarInput",
+  "States": {
+    "ValidarInput": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_VALIDATE_INPUT_ARN}",
+      "Next": "GerarHTML",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ],
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ]
+    },
+    "GerarHTML": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_GENERATE_HTML_ARN}",
+      "Next": "ArmazenarS3",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ],
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ]
+    },
+    "ArmazenarS3": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_STORE_SITE_ARN}",
+      "Next": "AtualizarStatus",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ],
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ]
+    },
+    "AtualizarStatus": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_UPDATE_STATUS_ARN}",
+      "Next": "NotificarUsuario",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ],
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ]
+    },
+    "NotificarUsuario": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_NOTIFY_USER_ARN}",
+      "End": true,
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ],
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ]
+    },
+    "AtualizarStatusErro": {
+      "Type": "Task",
+      "Resource": "${LAMBDA_UPDATE_STATUS_ARN}",
+      "End": true,
+      "TimeoutSeconds": 8,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "Lambda.ServiceException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "BackoffRate": 2.0,
+          "MaxAttempts": 3
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "AtualizarStatusErro"
+        }
+      ]
+    }
+  }
+}
